@@ -3,24 +3,20 @@ import { plugins } from './lib/plugins.js'
 export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
-    if (!msg || !msg.message || msg.key?.fromMe) return
-
-    const type = Object.keys(msg.message)[0]
+    if (!msg || !msg.message) return
+    if (msg.key?.fromMe) return
+    if (msg.key?.remoteJid === 'status@broadcast') return
 
     const body =
-      type === 'conversation'
-        ? msg.message.conversation
-        : type === 'imageMessage'
-        ? msg.message.imageMessage?.caption || ''
-        : type === 'videoMessage'
-        ? msg.message.videoMessage?.caption || ''
-        : type === 'extendedTextMessage'
-        ? msg.message.extendedTextMessage?.text || ''
-        : ''
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      msg.message.imageMessage?.caption ||
+      msg.message.videoMessage?.caption ||
+      ''
 
     if (!body) return
 
-    const prefix = '/'
+    const prefix = global.prefix || '/'
     if (!body.startsWith(prefix)) return
 
     const args = body.slice(prefix.length).trim().split(/\s+/)
@@ -30,11 +26,7 @@ export const handler = async (sock, m) => {
     if (!command) return
 
     const plugin = plugins.get(command)
-
-    if (!plugin) {
-      console.log(`Command not found: ${command}`)
-      return
-    }
+    if (!plugin) return
 
     await plugin.execute({
       sock,
