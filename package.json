@@ -1,23 +1,14 @@
 {
-  "name": "whatsapp-bot-base",
+  "name": "whatsapp-bot-panel",
   "version": "1.0.0",
-  "description": "WhatsApp Bot Base using Baileys",
+  "description": "WhatsApp Bot using Baileys rc.9 (Panel)",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [
-    "whatsapp",
-    "baileys",
-    "bot"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
-    "pino": "^9.0.0",
-    "qrcode-terminal": "^0.12.0"
+    "pino": "^9.0.0"
   }
 }
-
