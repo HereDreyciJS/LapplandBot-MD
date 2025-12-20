@@ -1,7 +1,7 @@
 import './lib/system/database.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
-import { handler } from './lib/handler.js'
+import { handler } from './handler.js'
 
 const start = async () => {
   global.loadDatabase()
