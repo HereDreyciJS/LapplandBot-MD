@@ -1,5 +1,3 @@
-import { plugins } from './lib/plugins.js'
-
 export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
@@ -25,7 +23,7 @@ export const handler = async (sock, m) => {
 
     if (!command) return
 
-    const plugin = plugins.get(command)
+    const plugin = global.plugins.get(command)
     if (!plugin) return
 
     await plugin.execute({
