@@ -4,7 +4,7 @@ export default {
     public: true,
     autoread: false,
     owners: [
-      '526631079388'
+      '239754268389439' //puro lid 
     ]
   }
 }
