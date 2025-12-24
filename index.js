@@ -1,9 +1,12 @@
 import './lib/system/database.js'
+import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
 
 const start = async () => {
+  global.settings = settings
+
   global.loadDatabase()
 
   console.log('Loading plugins...')
