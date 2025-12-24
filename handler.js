@@ -1,6 +1,6 @@
 import print from './lib/print.js'
 
-export const handler = async (sock, m, store) => {
+export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
     if (!msg || !msg.message) return
@@ -20,14 +20,7 @@ export const handler = async (sock, m, store) => {
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const isCommand = body.startsWith(prefix)
 
-    
-    
-    print({
-      msg,
-      body,
-      isCommand,
-      store
-    })
+    print(msg, body, isCommand, isGroup)
 
     if (!isCommand) return
 
