@@ -4,7 +4,6 @@ export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
     if (!msg || !msg.message) return
-    if (msg.key?.fromMe) return
     if (msg.key?.remoteJid === 'status@broadcast') return
 
     const body =
@@ -20,8 +19,16 @@ export const handler = async (sock, m) => {
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const isCommand = body.startsWith(prefix)
 
-    const rawSender = msg.key.participant || msg.key.remoteJid
-    const senderNumber = rawSender.replace(/\D/g, '')
+    const botNumber = sock.user.id.replace(/\D/g, '')
+    let senderNumber
+
+    if (msg.key.fromMe) {
+      senderNumber = botNumber
+    } else {
+      const rawSender = msg.key.participant || msg.key.remoteJid
+      senderNumber = rawSender.replace(/\D/g, '')
+    }
+
     const isOwner = global.settings.bot.owners.includes(senderNumber)
 
     await print(sock, msg, body, isCommand, isGroup)
