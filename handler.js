@@ -19,16 +19,11 @@ export const handler = async (sock, m) => {
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const isCommand = body.startsWith(prefix)
 
-    const botNumber = sock.user.id.replace(/\D/g, '')
-    let senderNumber
+    const rawSender = isGroup
+      ? msg.key.participant
+      : msg.key.remoteJid
 
-    if (msg.key.fromMe) {
-      senderNumber = botNumber
-    } else {
-      const rawSender = msg.key.participant || msg.key.remoteJid
-      senderNumber = rawSender.replace(/\D/g, '')
-    }
-
+    const senderNumber = rawSender.replace(/\D/g, '')
     const isOwner = global.settings.bot.owners.includes(senderNumber)
 
     await print(sock, msg, body, isCommand, isGroup)
