@@ -11,15 +11,16 @@ export default {
         if (seen.has(cmd)) return null
         seen.add(cmd)
 
-        const desc = p.description ? `\n  ↳ ${p.description}` : ''
-        return `${prefix}${cmd}${desc}`
+        const title = `**${prefix}${cmd}**`
+        const desc = p.description ? `\n> ${p.description}` : ''
+        return `${title}${desc}`
       })
       .filter(Boolean)
-      .join('\n')
+      .join('\n\n')
 
     const text =
-      `╭─〔 ${name} 〕─╮\n` +
-      `${list}\n` +
+      `╭─〔 ${name} 〕─╮\n\n` +
+      `${list}\n\n` +
       `╰──────────────╯`
 
     await sock.sendMessage(
