@@ -4,7 +4,7 @@ export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
     if (!msg || !msg.message) return
-    if (msg.key?.remoteJid === 'status@broadcast') return
+    if (msg.key.remoteJid === 'status@broadcast') return
 
     const body =
       msg.message.conversation ||
@@ -34,8 +34,6 @@ export const handler = async (sock, m) => {
     const command = args.shift()?.toLowerCase()
     const text = args.join(' ')
 
-    if (!command) return
-
     const plugin = global.plugins.get(command)
     if (!plugin || typeof plugin.execute !== 'function') return
 
@@ -50,6 +48,6 @@ export const handler = async (sock, m) => {
       isOwner
     })
   } catch (e) {
-    console.error('❌ Error en handler:', e)
+    console.error(e)
   }
 }
