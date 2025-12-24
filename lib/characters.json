@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Rem",
+    "gender": "Femenino",
+    "value": 1200,
+    "source": "Re:Zero",
+    "keyword": "rem re zero"
+  },
+  {
+    "name": "Emilia",
+    "gender": "Femenino",
+    "value": 1300,
+    "source": "Re:Zero",
+    "keyword": "emilia re zero"
+  },
+  {
+    "name": "Asuna Yuuki",
+    "gender": "Femenino",
+    "value": 1500,
+    "source": "Sword Art Online",
+    "keyword": "asuna yuuki sao"
+  },
+  {
+    "name": "Mikasa Ackerman",
+    "gender": "Femenino",
+    "value": 1600,
+    "source": "Shingeki no Kyojin",
+    "keyword": "mikasa ackerman attack on titan"
+  },
+  {
+    "name": "Zero Two",
+    "gender": "Femenino",
+    "value": 1800,
+    "source": "Darling in the Franxx",
+    "keyword": "zero two darling in the franxx"
+  },
+  {
+    "name": "Rias Gremory",
+    "gender": "Femenino",
+    "value": 1700",
+    "source": "High School DxD",
+    "keyword": "rias gremory dxd"
+  },
+  {
+    "name": "Nezuko Kamado",
+    "gender": "Femenino",
+    "value": 1400,
+    "source": "Kimetsu no Yaiba",
+    "keyword": "nezuko kamado demon slayer"
+  },
+  {
+    "name": "Hinata Hyuga",
+    "gender": "Femenino",
+    "value": 1300,
+    "source": "Naruto",
+    "keyword": "hinata hyuga naruto"
+  },
+  {
+    "name": "Makima",
+    "gender": "Femenino",
+    "value": 1900,
+    "source": "Chainsaw Man",
+    "keyword": "makima chainsaw man"
+  },
+  {
+    "name": "Yor Forger",
+    "gender": "Femenino",
+    "value": 1750,
+    "source": "Spy x Family",
+    "keyword": "yor forger spy x family"
+  }
+]
