@@ -5,6 +5,15 @@ export default {
     const { bot } = global.settings
     const { name, prefix, image, newsletter } = bot
 
+    const senderName =
+      m.pushName ||
+      m.key.participant?.split('@')[0] ||
+      m.key.remoteJid.split('@')[0]
+
+    const saludo =
+      `> ¡HOLA! ${senderName}, ¿cómo está tu día?\n` +
+      `> Mucho gusto, mi nombre es ${name}.\n\n`
+
     const seen = new Set()
 
     const list = [...global.plugins.values()]
@@ -22,7 +31,8 @@ export default {
       .join('\n\n')
 
     const text =
-`┏━ ${name} ━⊜
+`${saludo}` +
+`┏━ ━⊜
 ┃⋄ Tipo :: WhatsApp Bot
 ┃⋄ Comandos :: ${seen.size}
 ┗━━◘
