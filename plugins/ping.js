@@ -1,6 +1,5 @@
-
 export default {
-  command: ['ping'],
+  command: ['ping', 'p'],
   description: 'Mide el tiempo de respuesta del bot',
   execute: async ({ sock, m }) => {
     const start = Date.now()
@@ -11,17 +10,19 @@ export default {
       { quoted: m }
     )
 
-    const speed = Date.now() - start
+    const latency = Date.now() - start
 
-    const text =
+    const finalText =
       '[✓] Ping completado\n' +
-      `> Tiempo de respuesta: ${speed} ms\n` +
-      '> Sirve para comprobar si el bot responde correctamente'
+      `> Tiempo de respuesta: ${latency} ms`
 
     await sock.sendMessage(
       m.key.remoteJid,
-      { text },
-      { quoted: sent }
+      {
+        text: finalText,
+        edit: sent.key
+      },
+      { quoted: m }
     )
   }
 }
