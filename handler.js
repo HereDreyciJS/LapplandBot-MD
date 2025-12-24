@@ -20,7 +20,7 @@ export const handler = async (sock, m) => {
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const isCommand = body.startsWith(prefix)
 
-    print(msg, body, isCommand, isGroup)
+    await print(sock, msg, body, isCommand, isGroup)
 
     if (!isCommand) return
 
