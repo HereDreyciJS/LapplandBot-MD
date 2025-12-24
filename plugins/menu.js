@@ -1,3 +1,5 @@
+import { getUptime } from '../lib/utils/uptime.js'
+
 export default {
   command: ['menu', 'help'],
   hidden: true,
@@ -30,11 +32,14 @@ export default {
       .filter(Boolean)
       .join('\n\n')
 
+    const uptime = getUptime()
+
     const text =
 `${saludo}` +
 `┏━ ━⊜
 ┃⋄ Tipo :: WhatsApp Bot
 ┃⋄ Comandos :: ${seen.size}
+┃⋄ Uptime :: ${uptime}
 ┗━━◘
 
 ${list}`
