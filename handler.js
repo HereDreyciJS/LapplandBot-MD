@@ -51,6 +51,22 @@ export const handler = async (sock, m) => {
     const plugin = global.plugins.get(command)
     if (!plugin || typeof plugin.execute !== 'function') return
 
+    if (plugin.owner && !isOwner) {
+      return sock.sendMessage(
+        msg.key.remoteJid,
+        { text: '❌ Este comando es solo para el owner.' },
+        { quoted: msg }
+      )
+    }
+
+    if (plugin.admin && !isAdmin) {
+      return sock.sendMessage(
+        msg.key.remoteJid,
+        { text: '❌ Este comando es solo para administradores.' },
+        { quoted: msg }
+      )
+    }
+
     await plugin.execute({
       sock,
       m: msg,
