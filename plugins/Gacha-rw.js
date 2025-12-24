@@ -1,3 +1,7 @@
+// Creaditos @Neykoor no borrar 
+// repositorio del dev: https://github.com/ScriptNex
+
+
 import fs from 'fs'
 import { media } from '../lib/utils/media.js'
 
