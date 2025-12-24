@@ -5,6 +5,7 @@ export default {
     autoread: false,
     owners: [
       '5216631079388'
+      '526631079388'
     ]
   }
 }
