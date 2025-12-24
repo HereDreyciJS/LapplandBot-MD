@@ -14,7 +14,7 @@ export const handler = async (sock, m) => {
 
     if (!body) return
 
-    const prefix = global.prefix || '/'
+    const prefix = global.settings.bot.prefix
     if (!body.startsWith(prefix)) return
 
     const args = body.slice(prefix.length).trim().split(/\s+/)
@@ -31,7 +31,8 @@ export const handler = async (sock, m) => {
       m: msg,
       args,
       text,
-      width: prefix + command
+      prefix,
+      command
     })
   } catch (e) {
     console.error('Error in handler:', e)
