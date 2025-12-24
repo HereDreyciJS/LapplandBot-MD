@@ -1,6 +1,6 @@
 import print from './lib/print.js'
 
-export const handler = async (sock, m) => {
+export const handler = async (sock, m, store) => {
   try {
     const msg = m.messages?.[0]
     if (!msg || !msg.message) return
@@ -21,7 +21,13 @@ export const handler = async (sock, m) => {
     const isCommand = body.startsWith(prefix)
 
     
-    print(msg, body, isCommand, isGroup)
+    
+    print({
+      msg,
+      body,
+      isCommand,
+      store
+    })
 
     if (!isCommand) return
 
@@ -32,7 +38,7 @@ export const handler = async (sock, m) => {
     if (!command) return
 
     const plugin = global.plugins.get(command)
-    if (!plugin) return
+    if (!plugin || typeof plugin.execute !== 'function') return
 
     await plugin.execute({
       sock,
