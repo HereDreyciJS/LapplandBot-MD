@@ -11,8 +11,8 @@ export default {
       m.key.remoteJid.split('@')[0]
 
     const saludo =
-      `> ¡HOLA! ${senderName}, ¿cómo está tu día?\n` +
-      `> Mucho gusto, mi nombre es ${name}.\n\n`
+      `> *¡ʜᴏʟᴀ!* ${senderName}, ¿cómo está tu día?, ` +
+      `mucho gusto mi nombre es *${name}*\n\n`
 
     const seen = new Set()
 
