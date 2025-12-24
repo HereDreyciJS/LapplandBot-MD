@@ -1,5 +1,5 @@
 {
-  "name": "whatsapp-bot-panel",
+  "name": "LapplandBot-MD",
   "version": "1.0.0",
   "description": "WhatsApp Bot MD using Baileys rc.9 (Panel)",
   "main": "index.js",
@@ -15,3 +15,4 @@
     "yargs": "^17.7.2"
   }
 }
+
