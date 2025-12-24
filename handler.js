@@ -26,6 +26,20 @@ export const handler = async (sock, m) => {
     const senderNumber = rawSender.replace(/\D/g, '')
     const isOwner = global.settings.bot.owners.includes(senderNumber)
 
+    let isAdmin = false
+
+    if (isGroup) {
+      try {
+        const meta = await sock.groupMetadata(msg.key.remoteJid)
+        const participant = meta.participants.find(
+          p => p.id.replace(/\D/g, '') === senderNumber
+        )
+        isAdmin = !!participant?.admin
+      } catch {
+        isAdmin = false
+      }
+    }
+
     await print(sock, msg, body, isCommand, isGroup)
 
     if (!isCommand) return
@@ -45,7 +59,8 @@ export const handler = async (sock, m) => {
       prefix,
       command,
       isGroup,
-      isOwner
+      isOwner,
+      isAdmin
     })
   } catch (e) {
     console.error(e)
