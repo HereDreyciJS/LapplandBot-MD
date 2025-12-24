@@ -4,258 +4,35 @@
     "gender": "Femenino",
     "value": 1200,
     "source": "Re:Zero",
-    "keyword": "rem re zero"
+    "image": "rem",
+    "folder": "gacha/roll",
+    "rarity": "SSR"
   },
   {
     "name": "Emilia",
     "gender": "Femenino",
-    "value": 1300,
-    "source": "Re:Zero",
-    "keyword": "emilia re zero"
-  },
-  {
-    "name": "Ram",
-    "gender": "Femenino",
     "value": 1100,
     "source": "Re:Zero",
-    "keyword": "ram re zero"
-  },
-  {
-    "name": "Asuna Yuuki",
-    "gender": "Femenino",
-    "value": 1500,
-    "source": "Sword Art Online",
-    "keyword": "asuna yuuki sao"
-  },
-  {
-    "name": "Sinon",
-    "gender": "Femenino",
-    "value": 1400,
-    "source": "Sword Art Online",
-    "keyword": "sinon sao"
-  },
-  {
-    "name": "Mikasa Ackerman",
-    "gender": "Femenino",
-    "value": 1600,
-    "source": "Attack on Titan",
-    "keyword": "mikasa ackerman aot"
-  },
-  {
-    "name": "Historia Reiss",
-    "gender": "Femenino",
-    "value": 1350,
-    "source": "Attack on Titan",
-    "keyword": "historia reiss aot"
-  },
-  {
-    "name": "Zero Two",
-    "gender": "Femenino",
-    "value": 1800,
-    "source": "Darling in the Franxx",
-    "keyword": "zero two darling in the franxx"
-  },
-  {
-    "name": "Rias Gremory",
-    "gender": "Femenino",
-    "value": 1700,
-    "source": "High School DxD",
-    "keyword": "rias gremory dxd"
-  },
-  {
-    "name": "Akeno Himejima",
-    "gender": "Femenino",
-    "value": 1650,
-    "source": "High School DxD",
-    "keyword": "akeno himejima dxd"
-  },
-  {
-    "name": "Nezuko Kamado",
-    "gender": "Femenino",
-    "value": 1400,
-    "source": "Demon Slayer",
-    "keyword": "nezuko kamado demon slayer"
-  },
-  {
-    "name": "Shinobu Kocho",
-    "gender": "Femenino",
-    "value": 1550,
-    "source": "Demon Slayer",
-    "keyword": "shinobu kocho demon slayer"
-  },
-  {
-    "name": "Hinata Hyuga",
-    "gender": "Femenino",
-    "value": 1300,
-    "source": "Naruto",
-    "keyword": "hinata hyuga naruto"
-  },
-  {
-    "name": "Sakura Haruno",
-    "gender": "Femenino",
-    "value": 1200,
-    "source": "Naruto",
-    "keyword": "sakura haruno naruto"
-  },
-  {
-    "name": "Makima",
-    "gender": "Femenino",
-    "value": 1900,
-    "source": "Chainsaw Man",
-    "keyword": "makima chainsaw man"
-  },
-  {
-    "name": "Power",
-    "gender": "Femenino",
-    "value": 1700,
-    "source": "Chainsaw Man",
-    "keyword": "power chainsaw man"
-  },
-  {
-    "name": "Yor Forger",
-    "gender": "Femenino",
-    "value": 1750,
-    "source": "Spy x Family",
-    "keyword": "yor forger spy x family"
-  },
-  {
-    "name": "Anya Forger",
-    "gender": "Femenino",
-    "value": 1250,
-    "source": "Spy x Family",
-    "keyword": "anya forger spy x family"
-  },
-  {
-    "name": "Nami",
-    "gender": "Femenino",
-    "value": 1600,
-    "source": "One Piece",
-    "keyword": "nami one piece"
-  },
-  {
-    "name": "Robin",
-    "gender": "Femenino",
-    "value": 1650,
-    "source": "One Piece",
-    "keyword": "nico robin one piece"
-  },
-  {
-    "name": "Boa Hancock",
-    "gender": "Femenino",
-    "value": 1850,
-    "source": "One Piece",
-    "keyword": "boa hancock one piece"
-  },
-  {
-    "name": "Lucy Heartfilia",
-    "gender": "Femenino",
-    "value": 1450,
-    "source": "Fairy Tail",
-    "keyword": "lucy heartfilia fairy tail"
-  },
-  {
-    "name": "Erza Scarlet",
-    "gender": "Femenino",
-    "value": 1700,
-    "source": "Fairy Tail",
-    "keyword": "erza scarlet fairy tail"
-  },
-  {
-    "name": "Juvia Lockser",
-    "gender": "Femenino",
-    "value": 1350,
-    "source": "Fairy Tail",
-    "keyword": "juvia lockser fairy tail"
-  },
-  {
-    "name": "Mai Sakurajima",
-    "gender": "Femenino",
-    "value": 1600,
-    "source": "Bunny Girl Senpai",
-    "keyword": "mai sakurajima"
-  },
-  {
-    "name": "Kurisu Makise",
-    "gender": "Femenino",
-    "value": 1700,
-    "source": "Steins Gate",
-    "keyword": "kurisu makise steins gate"
-  },
-  {
-    "name": "Chisaki Hiradaira",
-    "gender": "Femenino",
-    "value": 1500,
-    "source": "A Lull in the Sea",
-    "keyword": "chisaki hiradaira"
-  },
-  {
-    "name": "Akame",
-    "gender": "Femenino",
-    "value": 1600,
-    "source": "Akame ga Kill",
-    "keyword": "akame akame ga kill"
-  },
-  {
-    "name": "Esdeath",
-    "gender": "Femenino",
-    "value": 1900,
-    "source": "Akame ga Kill",
-    "keyword": "esdeath akame ga kill"
-  },
-  {
-    "name": "Maki Nishikino",
-    "gender": "Femenino",
-    "value": 1400,
-    "source": "Love Live",
-    "keyword": "maki nishikino love live"
-  },
-  {
-    "name": "Aqua",
-    "gender": "Femenino",
-    "value": 1500,
-    "source": "Konosuba",
-    "keyword": "aqua konosuba"
-  },
-  {
-    "name": "Megumin",
-    "gender": "Femenino",
-    "value": 1550,
-    "source": "Konosuba",
-    "keyword": "megumin konosuba"
-  },
-  {
-    "name": "Darkness",
-    "gender": "Femenino",
-    "value": 1450,
-    "source": "Konosuba",
-    "keyword": "darkness konosuba"
-  },
-  {
-    "name": "Hestia",
-    "gender": "Femenino",
-    "value": 1600,
-    "source": "DanMachi",
-    "keyword": "hestia danmachi"
-  },
-  {
-    "name": "Freya",
-    "gender": "Femenino",
-    "value": 1750,
-    "source": "DanMachi",
-    "keyword": "freya danmachi"
-  },
-  {
-    "name": "Tohru",
-    "gender": "Femenino",
-    "value": 1650,
-    "source": "Miss Kobayashi Dragon Maid",
-    "keyword": "tohru dragon maid"
+    "image": "emilia",
+    "folder": "gacha/roll",
+    "rarity": "SR"
   },
   {
     "name": "Kanna Kamui",
     "gender": "Femenino",
     "value": 1350,
     "source": "Miss Kobayashi Dragon Maid",
-    "keyword": "kanna kamui dragon maid"
+    "image": "kanna",
+    "folder": "gacha/roll",
+    "rarity": "SSR"
+  },
+  {
+    "name": "Zero Two",
+    "gender": "Femenino",
+    "value": 1500,
+    "source": "Darling in the Franxx",
+    "image": "zerotwo",
+    "folder": "gacha/roll",
+    "rarity": "UR"
   }
 ]
