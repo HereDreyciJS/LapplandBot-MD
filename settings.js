@@ -4,7 +4,7 @@ export default {
     public: true,
     autoread: false,
     owners: [
-      '526631079388'
+      '5216631079388'
     ]
   }
 }
