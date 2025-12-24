@@ -1,153 +1,87 @@
-//crédito: alaya por por api
-
 import fs from 'fs'
-import fetch from 'node-fetch'
-import { v4 as uuidv4 } from 'uuid'
+import { media } from '../lib/utils/media.js'
 
-const obtenerImagen = async (keyword) => {
+const loadCharacters = () => {
   try {
-    const url = `https://api.delirius.store/search/gelbooru?query=${encodeURIComponent(keyword)}`
-    const res = await fetch(url)
-    const json = await res.json()
-
-    const valid = json?.data?.filter(
-      i => typeof i.image === 'string' && /\.(jpg|jpeg|png)$/i.test(i.image)
-    )
-
-    if (!valid?.length) return null
-    return valid[Math.floor(Math.random() * valid.length)].image
-  } catch {
-    return null
-  }
-}
-
-const obtenerPersonajes = () => {
-  try {
-    return JSON.parse(fs.readFileSync('./lib/characters.json', 'utf-8'))
+    const raw = fs.readFileSync('./lib/characters.json', 'utf-8')
+    return JSON.parse(raw)
   } catch {
     return []
   }
 }
 
 const msToTime = (ms) => {
-  const s = Math.floor(ms / 1000) % 60
-  const m = Math.floor(ms / 60000) % 60
-  return m > 0 ? `${m}m ${s}s` : `${s}s`
+  const s = Math.floor(ms / 1000)
+  const m = Math.floor(s / 60)
+  const h = Math.floor(m / 60)
+  return h
+    ? `${h}h ${m % 60}m`
+    : m
+    ? `${m}m ${s % 60}s`
+    : `${s}s`
 }
 
 export default {
-  command: ['rw', 'roll', 'rollwaifu', 'rf'],
-  description: 'Obtén un personaje aleatorio del gacha',
+  command: ['rw', 'roll', 'rollwaifu'],
+  description: 'Sorteo de personajes (Gacha público)',
+
   execute: async ({ sock, m }) => {
-    const db = global.db.data
     const chatId = m.key.remoteJid
-    const userId = m.key.participant || m.key.remoteJid
+    const userId = m.sender
     const now = Date.now()
 
+    const db = global.db.data
     db.chats ||= {}
-    db.users ||= {}
-
-    db.chats[chatId] ||= {
-      users: {},
-      personajesReservados: [],
-      gacha: true,
-      adminonly: false
-    }
-
+    db.chats[chatId] ||= { users: {} }
     db.chats[chatId].users ||= {}
+    db.chats[chatId].users[userId] ||= {}
 
-    db.chats[chatId].users[userId] ||= {
-      rwCooldown: 0,
-      characters: []
-    }
+    const user = db.chats[chatId].users[userId]
 
-    const chat = db.chats[chatId]
-    const user = chat.users[userId]
-
-    if (chat.adminonly || !chat.gacha) {
+    if (user.rwCooldown && user.rwCooldown > now) {
       return sock.sendMessage(
         chatId,
-        { text: '✿ El sistema *gacha* está desactivado en este grupo.' },
+        { text: `⏳ Espera ${msToTime(user.rwCooldown - now)} para volver a usar el gacha.` },
         { quoted: m }
       )
     }
 
-    const restante = (user.rwCooldown || 0) - now
-    if (restante > 0) {
+    const characters = loadCharacters()
+    if (!characters.length) {
       return sock.sendMessage(
         chatId,
-        { text: `✿ Espera *${msToTime(restante)}* para volver a usar este comando.` },
+        { text: '❌ No hay personajes disponibles.' },
         { quoted: m }
       )
     }
 
-    const personajes = obtenerPersonajes()
-    const personaje = personajes[Math.floor(Math.random() * personajes.length)]
-    if (!personaje) {
-      return sock.sendMessage(
-        chatId,
-        { text: '✿ No se encontró ningún personaje disponible.' },
-        { quoted: m }
-      )
-    }
+    const character = characters[Math.floor(Math.random() * characters.length)]
 
-    const reservado = chat.personajesReservados.find(
-      p => p.name === personaje.name
-    )
+    user.rwCooldown = now + 15 * 60 * 1000
 
-    const poseedor = Object.entries(chat.users).find(
-      ([_, u]) =>
-        Array.isArray(u.characters) &&
-        u.characters.some(c => c.name === personaje.name)
-    )
+    const imageUrl = media(`${character.folder}/${character.image}.jpg`)
 
-    let estado = 'Libre'
-    if (poseedor) estado = 'Reclamado'
-    else if (reservado) estado = 'Reservado'
-
-    user.rwCooldown = now + 15 * 60_000
-
-    const valor = typeof personaje.value === 'number'
-      ? personaje.value.toLocaleString()
-      : '0'
-
-    const mensaje =
+    const text =
 `┏━ *Waifu Roll* ━⊜
-┃✦ *Nombre*   :: ${personaje.name}
-┃✧ *Género*   :: ${personaje.gender || 'Desconocido'}
-┃✦ *Valor*    :: ${valor}
-┃✧ *Estado*   :: ${estado}
-┃✦ *Fuente*   :: ${personaje.source || 'Desconocido'}
+┃✦ *Nombre*   :: ${character.name}
+┃✧ *Género*   :: ${character.gender}
+┃✦ *Valor*    :: ${Number(character.value).toLocaleString()}
+┃✧ *Rareza*   :: ${character.rarity}
+┃✦ *Fuente*   :: ${character.source}
 ┗━━◘`
 
-    const imagen = await obtenerImagen(personaje.keyword)
-
-    if (imagen) {
+    if (imageUrl) {
       await sock.sendMessage(
         chatId,
-        {
-          image: { url: imagen },
-          caption: mensaje
-        },
+        { image: { url: imageUrl }, caption: text },
         { quoted: m }
       )
     } else {
       await sock.sendMessage(
         chatId,
-        {
-          text: mensaje
-        },
+        { text },
         { quoted: m }
       )
-    }
-
-    if (!poseedor && !reservado) {
-      chat.personajesReservados.push({
-        ...personaje,
-        id: uuidv4().slice(0, 8),
-        reservedBy: userId,
-        expiresAt: now + 60_000
-      })
     }
   }
 }
