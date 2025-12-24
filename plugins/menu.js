@@ -37,9 +37,9 @@ export default {
     const text =
 `${saludo}` +
 `┏━ ━⊜
-┃⋄ Tipo :: WhatsApp Bot
-┃⋄ Comandos :: ${seen.size}
-┃⋄ Uptime :: ${uptime}
+┃⋄ Info :
+┃⋄ *Uptime* :: ${uptime}
+┃⋄ *Tipo* :: WhatsApp Bot
 ┗━━◘
 
 ${list}`
