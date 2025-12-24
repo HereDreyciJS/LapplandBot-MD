@@ -1,5 +1,6 @@
 export default {
-  command: ['kick'],
+  command: ['kick', 'expulsar'],
+  description: 'Expulsar a miembros del grupo',
   execute: async ({ sock, m, isGroup, isAdmin, isOwner }) => {
     if (!isGroup) {
       return sock.sendMessage(
@@ -17,26 +18,21 @@ export default {
       )
     }
 
-    const mentioned =
-      m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-
-    const quoted =
-      m.message?.extendedTextMessage?.contextInfo?.participant
-
+    const context = m.message?.extendedTextMessage?.contextInfo
+    const mentioned = context?.mentionedJid?.[0]
+    const quoted = context?.participant
     const user = mentioned || quoted
 
     if (!user) {
       return sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ Etiqueta o responde al mensaje de la persona que quieres eliminar.' },
+        { text: '❌ Etiqueta o responde al mensaje de la persona que quieres expulsar.' },
         { quoted: m }
       )
     }
 
-    const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
-    const participants = groupMetadata.participants
-
-    const target = participants.find(p => p.id === user)
+    const meta = await sock.groupMetadata(m.key.remoteJid)
+    const target = meta.participants.find(p => p.id === user)
 
     if (!target) {
       return sock.sendMessage(
@@ -49,7 +45,7 @@ export default {
     if (user === sock.user.id) {
       return sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ No puedo eliminar al bot.' },
+        { text: '❌ No puedo expulsarme a mí misma.' },
         { quoted: m }
       )
     }
@@ -57,7 +53,7 @@ export default {
     if (target.admin === 'superadmin') {
       return sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ No puedo eliminar al propietario del grupo.' },
+        { text: '❌ No puedo expulsar al propietario del grupo.' },
         { quoted: m }
       )
     }
@@ -72,7 +68,7 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          text: `✅ @${user.split('@')[0]} eliminado correctamente.`,
+          text: `✅ @${user.split('@')[0]} expulsado correctamente.`,
           mentions: [user]
         },
         { quoted: m }
@@ -80,7 +76,7 @@ export default {
     } catch {
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ No pude eliminar al usuario.' },
+        { text: '❌ No pude expulsar al usuario.' },
         { quoted: m }
       )
     }
