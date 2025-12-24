@@ -1,14 +1,12 @@
 // Creaditos @Neykoor no borrar 
 // repositorio del dev: https://github.com/ScriptNex
 
-
 import fs from 'fs'
 import { media } from '../lib/utils/media.js'
 
 const loadCharacters = () => {
   try {
-    const raw = fs.readFileSync('./lib/characters.json', 'utf-8')
-    return JSON.parse(raw)
+    return JSON.parse(fs.readFileSync('./lib/characters.json', 'utf-8'))
   } catch {
     return []
   }
@@ -18,16 +16,12 @@ const msToTime = (ms) => {
   const s = Math.floor(ms / 1000)
   const m = Math.floor(s / 60)
   const h = Math.floor(m / 60)
-  return h
-    ? `${h}h ${m % 60}m`
-    : m
-    ? `${m}m ${s % 60}s`
-    : `${s}s`
+  return h ? `${h}h ${m % 60}m` : m ? `${m}m ${s % 60}s` : `${s}s`
 }
 
 export default {
   command: ['rw', 'roll', 'rollwaifu'],
-  description: 'Sorteo de personajes (Gacha público)',
+  description: 'Sorteo gacha público',
 
   execute: async ({ sock, m }) => {
     const chatId = m.key.remoteJid
@@ -37,7 +31,6 @@ export default {
     const db = global.db.data
     db.chats ||= {}
     db.chats[chatId] ||= { users: {} }
-    db.chats[chatId].users ||= {}
     db.chats[chatId].users[userId] ||= {}
 
     const user = db.chats[chatId].users[userId]
@@ -60,10 +53,9 @@ export default {
     }
 
     const character = characters[Math.floor(Math.random() * characters.length)]
-
     user.rwCooldown = now + 15 * 60 * 1000
 
-    const imageUrl = media(`${character.folder}/${character.image}.jpg`)
+    const img = media(`${character.folder}/${character.image}.jpg`)
 
     const text =
 `┏━ *Waifu Roll* ━⊜
@@ -74,18 +66,12 @@ export default {
 ┃✦ *Fuente*   :: ${character.source}
 ┗━━◘`
 
-    if (imageUrl) {
-      await sock.sendMessage(
-        chatId,
-        { image: { url: imageUrl }, caption: text },
-        { quoted: m }
-      )
-    } else {
-      await sock.sendMessage(
-        chatId,
-        { text },
-        { quoted: m }
-      )
-    }
+    await sock.sendMessage(
+      chatId,
+      img
+        ? { image: { url: img }, caption: text }
+        : { text },
+      { quoted: m }
+    )
   }
 }
