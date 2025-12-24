@@ -1,5 +1,4 @@
-// me dio flojera ser el rw asi que se usara el api de alaya
-
+//creditos a alaya por la api
 import fs from 'fs'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
@@ -44,6 +43,23 @@ export default {
     const userId = m.key.participant || m.key.remoteJid
     const now = Date.now()
 
+    db.chats ||= {}
+    db.users ||= {}
+
+    db.chats[chatId] ||= {
+      users: {},
+      personajesReservados: [],
+      gacha: true,
+      adminonly: false
+    }
+
+    db.chats[chatId].users ||= {}
+
+    db.chats[chatId].users[userId] ||= {
+      rwCooldown: 0,
+      characters: []
+    }
+
     const chat = db.chats[chatId]
     const user = chat.users[userId]
 
@@ -74,10 +90,14 @@ export default {
       )
     }
 
-    const reservado = chat.personajesReservados?.find(p => p.name === personaje.name)
+    const reservado = chat.personajesReservados.find(
+      p => p.name === personaje.name
+    )
 
     const poseedor = Object.entries(chat.users).find(
-      ([_, u]) => Array.isArray(u.characters) && u.characters.some(c => c.name === personaje.name)
+      ([_, u]) =>
+        Array.isArray(u.characters) &&
+        u.characters.some(c => c.name === personaje.name)
     )
 
     let estado = 'Libre'
