@@ -1,21 +1,28 @@
 export default {
   command: ['menu', 'help'],
   execute: async ({ sock, m }) => {
-    let menuText = 'Available Commands:\n\n'
+    const name = global.settings.bot.name
+    const prefix = global.settings.bot.prefix
+    const image = global.settings.bot.image
 
-    const uniquePlugins = new Set(global.plugins.values())
+    const commands = [...new Set(global.plugins.values())]
+      .map(p => {
+        const cmd = Array.isArray(p.command) ? p.command[0] : p.command
+        return `${prefix}${cmd}`
+      })
+      .join('\n')
 
-    for (const plugin of uniquePlugins) {
-      const cmds = Array.isArray(plugin.command)
-        ? plugin.command.join(', ')
-        : plugin.command
-
-      menuText += `- /${cmds}\n`
-    }
+    const text =
+      `╭─〔 ${name} 〕─╮\n` +
+      `${commands}\n` +
+      `╰──────────────╯`
 
     await sock.sendMessage(
       m.key.remoteJid,
-      { text: menuText },
+      {
+        image: { url: image },
+        caption: text
+      },
       { quoted: m }
     )
   }
