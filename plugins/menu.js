@@ -11,7 +11,7 @@ export default {
         if (seen.has(cmd)) return null
         seen.add(cmd)
 
-        const title = `**${prefix}${cmd}**`
+        const title = `*${prefix}${cmd}*`
         const desc = p.description ? `\n> ${p.description}` : ''
         return `${title}${desc}`
       })
@@ -33,3 +33,4 @@ export default {
     )
   }
 }
+
