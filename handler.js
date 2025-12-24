@@ -1,3 +1,5 @@
+import print from './lib/print.js'
+
 export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
@@ -15,7 +17,13 @@ export const handler = async (sock, m) => {
     if (!body) return
 
     const prefix = global.settings.bot.prefix
-    if (!body.startsWith(prefix)) return
+    const isGroup = msg.key.remoteJid.endsWith('@g.us')
+    const isCommand = body.startsWith(prefix)
+
+    
+    print(msg, body, isCommand, isGroup)
+
+    if (!isCommand) return
 
     const args = body.slice(prefix.length).trim().split(/\s+/)
     const command = args.shift()?.toLowerCase()
@@ -32,9 +40,10 @@ export const handler = async (sock, m) => {
       args,
       text,
       prefix,
-      command
+      command,
+      isGroup
     })
   } catch (e) {
-    console.error('Error in handler:', e)
+    console.error('❌ Error en handler:', e)
   }
 }
