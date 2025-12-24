@@ -1,17 +1,19 @@
 export default {
   command: ['menu', 'help'],
+  hidden: true,
   execute: async ({ sock, m }) => {
     const { name, prefix, image } = global.settings.bot
 
     const seen = new Set()
 
     const list = [...global.plugins.values()]
+      .filter(p => !p.hidden)
       .map(p => {
         const cmd = Array.isArray(p.command) ? p.command[0] : p.command
         if (seen.has(cmd)) return null
         seen.add(cmd)
 
-        const title = `*${prefix}${cmd}*`
+        const title = `✿ *${prefix}${cmd}*`
         const desc = p.description ? `\n> ${p.description}` : ''
         return `${title}${desc}`
       })
@@ -33,4 +35,3 @@ export default {
     )
   }
 }
-
