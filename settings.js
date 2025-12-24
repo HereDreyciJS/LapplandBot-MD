@@ -7,6 +7,11 @@ export default {
     owners: [
       '239754268389439'
     ],
-    image: 'https://files.catbox.moe/t1e8hp.jpeg'
+    image: 'https://files.catbox.moe/t1e8hp.jpeg',
+
+    newsletter: {
+      jid: '120363392571425662@newsletter',
+      name: 'Lappland Channel'
+    }
   }
 }
