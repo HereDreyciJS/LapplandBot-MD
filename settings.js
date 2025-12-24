@@ -1,10 +1,12 @@
 export default {
   bot: {
+    name: 'Lappland Bot',
     prefix: '/',
     public: true,
     autoread: false,
     owners: [
-      '239754268389439' //puro lib 
-    ]
+      '239754268389439'
+    ],
+    image: 'https://files.catbox.moe/t1e8hp.jpeg'
   }
 }
