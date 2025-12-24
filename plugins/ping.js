@@ -6,15 +6,15 @@ export default {
 
     const sent = await sock.sendMessage(
       m.key.remoteJid,
-      { text: '[::] Midiendo respuesta...' },
+      { text: '✿ *Midiendo...*' },
       { quoted: m }
     )
 
     const latency = Date.now() - start
 
     const finalText =
-      '[✓] Ping completado\n' +
-      `> Tiempo de respuesta: ${latency} ms`
+      '✿ *Pong!*\n' +
+      `> Tiempo ⴵ ${latency} ms`
 
     await sock.sendMessage(
       m.key.remoteJid,
