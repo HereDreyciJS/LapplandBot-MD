@@ -1,4 +1,5 @@
-//creditos a alaya por la api
+//crédito: alaya por por api
+
 import fs from 'fs'
 import fetch from 'node-fetch'
 import { v4 as uuidv4 } from 'uuid'
@@ -121,14 +122,24 @@ export default {
 
     const imagen = await obtenerImagen(personaje.keyword)
 
-    await sock.sendMessage(
-      chatId,
-      {
-        image: imagen ? { url: imagen } : undefined,
-        caption: mensaje
-      },
-      { quoted: m }
-    )
+    if (imagen) {
+      await sock.sendMessage(
+        chatId,
+        {
+          image: { url: imagen },
+          caption: mensaje
+        },
+        { quoted: m }
+      )
+    } else {
+      await sock.sendMessage(
+        chatId,
+        {
+          text: mensaje
+        },
+        { quoted: m }
+      )
+    }
 
     if (!poseedor && !reservado) {
       chat.personajesReservados.push({
