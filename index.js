@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import './lib/system/database.js'
 import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
@@ -6,12 +7,13 @@ import { handler } from './handler.js'
 
 const start = async () => {
   global.settings = settings
-  global.loadDatabase()
 
-  console.log('Loading plugins...')
+  if (typeof global.loadDatabase === 'function') {
+    await global.loadDatabase()
+  }
+
   await loadPlugins()
 
-  console.log('Starting bot...')
   const sock = await startConnection()
 
   sock.ev.on('messages.upsert', async (m) => {
@@ -19,8 +21,8 @@ const start = async () => {
     await handler(sock, m)
   })
 
-  process.on('uncaughtException', console.error)
-  process.on('unhandledRejection', console.error)
+  process.on('uncaughtException', () => {})
+  process.on('unhandledRejection', () => {})
 }
 
 start()
