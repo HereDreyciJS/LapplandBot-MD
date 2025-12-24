@@ -1,28 +1,25 @@
 export default {
   command: ['menu', 'help'],
   execute: async ({ sock, m }) => {
-    const name = global.settings.bot.name
     const prefix = global.settings.bot.prefix
-    const image = global.settings.bot.image
+    const name = global.settings.bot.name
 
-    const commands = [...new Set(global.plugins.values())]
+    const list = [...global.plugins.values()]
       .map(p => {
         const cmd = Array.isArray(p.command) ? p.command[0] : p.command
-        return `${prefix}${cmd}`
+        const desc = p.description ? `\n  ↳ ${p.description}` : ''
+        return `${prefix}${cmd}${desc}`
       })
       .join('\n')
 
     const text =
       `╭─〔 ${name} 〕─╮\n` +
-      `${commands}\n` +
+      `${list}\n` +
       `╰──────────────╯`
 
     await sock.sendMessage(
       m.key.remoteJid,
-      {
-        image: { url: image },
-        caption: text
-      },
+      { text },
       { quoted: m }
     )
   }
