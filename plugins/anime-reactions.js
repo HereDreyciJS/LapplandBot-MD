@@ -1,4 +1,4 @@
-import axios from 'axios'
+import fetch from 'node-fetch'
 
 export default {
   command: ['hug', 'kiss', 'pat', 'slap', 'bite', 'punch', 'cry', 'smile', 'blush', 'wave', 'dance', 'poke'],
@@ -23,7 +23,8 @@ export default {
       const apiUrl = reacciones[command]
       if (!apiUrl) return
 
-      const { data } = await axios.get(apiUrl)
+      const response = await fetch(apiUrl)
+      const data = await response.json()
       const gifUrl = data.results.url
 
       const contextInfo = m.message?.extendedTextMessage?.contextInfo
@@ -42,7 +43,7 @@ export default {
         image: { url: gifUrl },
         caption: caption,
         mentions: mentioned.length > 0 ? [sender, ...mentioned] : [sender],
-        gifPlayback: true // Importante para que se reproduzca como GIF
+        gifPlayback: true
       }, { 
         quoted: m,
         ephemeralExpiration: m.expiration
@@ -51,7 +52,7 @@ export default {
     } catch (error) {
       console.error('Error en reacciones anime:', error)
       await sock.sendMessage(m.key.remoteJid, {
-        text: '❌ Error al obtener la reacción. Intenta nuevamente.'
+        text: '❌ Error al obtener la reacción anime. Intenta nuevamente.'
       }, { quoted: m })
     }
   }
