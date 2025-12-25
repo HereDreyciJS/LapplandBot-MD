@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 export default {
   command: ['hug', 'kiss', 'pat', 'slap', 'bite', 'punch', 'cry', 'smile', 'blush', 'wave', 'dance', 'poke'],
-  description: 'Reacciones anime interactivas',
+  description: 'Reacciones anime',
   execute: async ({ sock, m, args, command, prefix, isGroup }) => {
     try {
       const reacciones = {
@@ -23,15 +23,22 @@ export default {
       const apiUrl = reacciones[command]
       if (!apiUrl) return
 
+      
       const response = await fetch(apiUrl)
       const data = await response.json()
       const gifUrl = data.results.url
 
+      
+      const imageResponse = await fetch(gifUrl)
+      const imageBuffer = await imageResponse.buffer()
+
+      
       const contextInfo = m.message?.extendedTextMessage?.contextInfo
       const mentioned = contextInfo?.mentionedJid || []
       const sender = m.key.participant || m.key.remoteJid
       const senderName = sender.split('@')
 
+      
       let caption = `*${command.toUpperCase()}* 💕`
       
       if (mentioned.length > 0) {
@@ -39,20 +46,20 @@ export default {
         caption = `@${senderName} usó *${command}* en @${targetName} 💕`
       }
 
+      
       await sock.sendMessage(m.key.remoteJid, {
-        image: { url: gifUrl },
+        image: imageBuffer,
         caption: caption,
         mentions: mentioned.length > 0 ? [sender, ...mentioned] : [sender],
         gifPlayback: true
       }, { 
-        quoted: m,
-        ephemeralExpiration: m.expiration
+        quoted: m
       })
 
     } catch (error) {
       console.error('Error en reacciones anime:', error)
       await sock.sendMessage(m.key.remoteJid, {
-        text: '❌ Error al obtener la reacción anime. Intenta nuevamente.'
+        text: '❌ Error al obtener la reacción. Intenta nuevamente.'
       }, { quoted: m })
     }
   }
