@@ -2,59 +2,36 @@ import fetch from 'node-fetch'
 
 const endpoints = {
   hug: 'https://nekos.best/api/v2/hug',
-  kiss: 'https://nekos.best/api/v2/kiss',
-  pat: 'https://nekos.best/api/v2/pat',
-  slap: 'https://nekos.best/api/v2/slap',
-  bite: 'https://nekos.best/api/v2/bite',
-  punch: 'https://nekos.best/api/v2/punch',
-  cry: 'https://nekos.best/api/v2/cry',
-  smile: 'https://nekos.best/api/v2/smile',
-  blush: 'https://nekos.best/api/v2/blush',
-  wave: 'https://nekos.best/api/v2/wave'
+  kiss: 'https://nekos.best/api/v2/kiss'
 }
 
 const getReaction = async (type) => {
-  try {
-    const res = await fetch(endpoints[type])
-    const json = await res.json()
-    return json?.results?.?.url || null
-  } catch (error) {
-    console.error(`Error obteniendo ${type}:`, error)
-    return null
-  }
+  const res = await fetch(endpoints[type])
+  const json = await res.json()
+  return json?.results?.[0]?.url || null
 }
 
 export default {
-  command: ['hug', 'kiss', 'pat', 'slap', 'bite', 'punch', 'cry', 'smile', 'blush', 'wave'],
+  command: ['hug', 'kiss'],
   description: 'Reacciones anime',
   execute: async ({ sock, m, command }) => {
-    try {
-      const url = await getReaction(command)
+    const url = await getReaction(command)
 
-      if (!url) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: `❌ No se pudo obtener la reacción de *${command}* 😿` },
-          { quoted: m }
-        )
-      }
-
-      await sock.sendMessage(
+    if (!url) {
+      return sock.sendMessage(
         m.key.remoteJid,
-        {
-          video: { url },
-          caption: `*${command.toUpperCase()}* 💕`,
-          gifPlayback: true
-        },
-        { quoted: m }
-      )
-    } catch (error) {
-      console.error('Error en reacciones anime:', error)
-      sock.sendMessage(
-        m.key.remoteJid,
-        { text: '❌ Error al enviar la reacción. Intenta nuevamente.' },
+        { text: 'No se pudo obtener la reacción 😿' },
         { quoted: m }
       )
     }
+
+    await sock.sendMessage(
+      m.key.remoteJid,
+      {
+        video: { url },
+        gifPlayback: true
+      },
+      { quoted: m }
+    )
   }
 }
