@@ -15,17 +15,24 @@ export default {
 
       await sock.sendMessage(m.key.remoteJid, { text: `⏳ Descargando: *${video.title}*...` }, { quoted: m })
 
-      const api = await fetch(`https://api.alyachan.dev/api/ytmp3?url=${video.url}&apikey=GataDios`)
-      const res = await api.json()
+      const api = await fetch(`https://api.vreden.my.id/api/ytmp3?url=${video.url}`)
+      const textResponse = await api.text() // Leemos primero como texto para evitar el crash
 
-      if (!res.status || !res.data?.url) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'La API está saturada, intenta de nuevo en un momento ❌' }, { quoted: m })
+      let res
+      try {
+        res = JSON.parse(textResponse)
+      } catch (e) {
+        return sock.sendMessage(m.key.remoteJid, { text: 'El servidor de descarga está caído, intenta de nuevo en un momento.' }, { quoted: m })
+      }
+
+      if (!res.status || !res.result?.download?.url) {
+        return sock.sendMessage(m.key.remoteJid, { text: 'No se pudo obtener el enlace de descarga ❌' }, { quoted: m })
       }
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          audio: { url: res.data.url },
+          audio: { url: res.result.download.url },
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
         },
