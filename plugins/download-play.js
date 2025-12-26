@@ -1,5 +1,6 @@
 import fetch from 'node-fetch'
 import yts from 'yt-search'
+import ytdl from '@distube/ytdl-core'
 
 export default {
   command: ['play'],
@@ -15,34 +16,43 @@ export default {
 
       await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
 
-      const apiUrl = `https://api.agatz.xyz/api/ytmp3?url=${encodeURIComponent(video.url)}`
-      const api = await fetch(apiUrl)
-      const res = await api.json()
+      const stream = ytdl(video.url, {
+        filter: 'audioonly',
+        quality: 'highestaudio',
+        requestOptions: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+          }
+        }
+      })
 
-      if (res.status === 200 && res.data?.[0]?.url) {
-        return await sock.sendMessage(m.key.remoteJid, {
-          audio: { url: res.data[0].url },
+      const chunks = []
+      for await (const chunk of stream) {
+        chunks.push(chunk)
+      }
+      const buffer = Buffer.concat(chunks)
+
+      await sock.sendMessage(
+        m.key.remoteJid,
+        {
+          audio: buffer,
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
-        }, { quoted: m })
-      }
-
-      const backupApi = await fetch(`https://api.boxi.my.id/api/ytmp3?url=${video.url}`)
-      const backupRes = await backupApi.json()
-      
-      if (backupRes.status && backupRes.url) {
-        return await sock.sendMessage(m.key.remoteJid, {
-          audio: { url: backupRes.url },
-          mimetype: 'audio/mp4',
-          fileName: `${video.title}.mp3`
-        }, { quoted: m })
-      }
-
-      return sock.sendMessage(m.key.remoteJid, { text: 'Las APIs están saturadas en este momento ❌' }, { quoted: m })
-
+        },
+        { quoted: m }
+      )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado ❌' }, { quoted: m })
+      // Intento final con una API de emergencia si el buffer falla
+      try {
+        const api = await fetch(`https://api.tostadora.org/api/ytdl/mp3?url=${encodeURIComponent(text)}`)
+        const res = await api.json()
+        if (res.url) {
+          return await sock.sendMessage(m.key.remoteJid, { audio: { url: res.url }, mimetype: 'audio/mp4' }, { quoted: m })
+        }
+      } catch (e2) {}
+      
+      sock.sendMessage(m.key.remoteJid, { text: 'Error al procesar el audio. YouTube está bloqueando la conexión del servidor ❌' }, { quoted: m })
     }
   }
 }
