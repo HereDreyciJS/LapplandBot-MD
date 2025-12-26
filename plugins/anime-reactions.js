@@ -12,13 +12,11 @@ const getReaction = async (type) => {
     const res = await fetch(endpoints[type])
     const json = await res.json()
     
-    // Verificar que json es un objeto y tiene resultados
     if (!json || !Array.isArray(json.results) || json.results.length === 0) {
       console.error('Respuesta de la API no es válida:', json)
       return null
     }
-    
-    // Extraer la URL del primer resultado
+  
     const url = json.results.url
     
     if (!url) {
@@ -48,7 +46,6 @@ export default {
         )
       }
 
-      // Descargar el GIF como buffer
       const response = await fetch(url)
       const buffer = await response.buffer()
 
