@@ -12,9 +12,6 @@ const getReaction = async (type) => {
     const res = await fetch(endpoints[type])
     const json = await res.json()
     
-    // Debug: ver qué devuelve la API
-    console.log('Respuesta completa de la API:', JSON.stringify(json, null, 2))
-    
     if (json && json.results && json.results && json.results.url) {
       return json.results.url
     }
@@ -45,8 +42,7 @@ export default {
         {
           video: { url },
           caption: `*${command.toUpperCase()}* 💕`,
-          gifPlayback: true,
-          mimetype: 'video/mp4'
+          gifPlayback: true
         },
         { quoted: m }
       )
