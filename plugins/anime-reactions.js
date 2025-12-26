@@ -7,14 +7,19 @@ const endpoints = {
   slap: 'https://nekos.best/api/v2/slap'
 }
 
-const getReaction = async (type) => {
+const getReactionData = async (type) => {
   try {
     const res = await fetch(endpoints[type])
     const json = await res.json()
-    // nekos.best devuelve los datos en results[0].url
-    return json?.results?.[0]?.url || null
+    const url = json?.results?.[0]?.url
+    if (!url) return null
+
+    
+    const videoRes = await fetch(url)
+    const buffer = await videoRes.buffer()
+    return buffer
   } catch (e) {
-    console.error('Error fetching reaction:', e)
+    console.error(e)
     return null
   }
 }
@@ -23,9 +28,9 @@ export default {
   command: ['hug', 'kiss', 'pat', 'slap'],
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
-    const url = await getReaction(command)
+    const buffer = await getReactionData(command)
 
-    if (!url) {
+    if (!buffer) {
       return sock.sendMessage(
         m.key.remoteJid,
         { text: 'No se pudo obtener la reacción 😿' },
@@ -33,7 +38,6 @@ export default {
       )
     }
 
-    // Extraemos menciones o respuesta a mensaje para el texto
     const sender = m.key.participant || m.key.remoteJid
     const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
     const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
@@ -47,7 +51,7 @@ export default {
     await sock.sendMessage(
       m.key.remoteJid,
       {
-        video: { url },
+        video: buffer,
         caption: caption,
         gifPlayback: true,
         mentions: [sender, target].filter(Boolean)
