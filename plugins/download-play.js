@@ -15,17 +15,17 @@ export default {
 
       await sock.sendMessage(m.key.remoteJid, { text: `⏳ Descargando: *${video.title}*...` }, { quoted: m })
 
-      const response = await fetch(`https://api.siputzx.my.id/api/dwnld/ytmp3?url=${video.url}`)
-      const json = await response.json()
+      const api = await fetch(`https://api.alyachan.dev/api/ytmp3?url=${video.url}&apikey=GataDios`)
+      const res = await api.json()
 
-      if (!json.status || !json.data?.dl) {
-        throw new Error('Fallo en la descarga')
+      if (!res.status || !res.data?.url) {
+        return sock.sendMessage(m.key.remoteJid, { text: 'La API está saturada, intenta de nuevo en un momento ❌' }, { quoted: m })
       }
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          audio: { url: json.data.dl },
+          audio: { url: res.data.url },
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
         },
@@ -33,7 +33,7 @@ export default {
       )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error al obtener el audio. Intenta de nuevo más tarde ❌' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado ❌' }, { quoted: m })
     }
   }
 }
