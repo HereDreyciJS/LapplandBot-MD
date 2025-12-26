@@ -4,19 +4,16 @@ const endpoints = {
   hug: 'https://nekos.best/api/v2/hug',
   kiss: 'https://nekos.best/api/v2/kiss',
   pat: 'https://nekos.best/api/v2/pat',
-  slap: 'https://nekos.best/api/v2/slap',
-  bite: 'https://nekos.best/api/v2/bite',
-  punch: 'https://nekos.best/api/v2/punch',
-  cry: 'https://nekos.best/api/v2/cry',
-  smile: 'https://nekos.best/api/v2/smile',
-  blush: 'https://nekos.best/api/v2/blush',
-  wave: 'https://nekos.best/api/v2/wave'
+  slap: 'https://nekos.best/api/v2/slap'
 }
 
 const getReaction = async (type) => {
   try {
     const res = await fetch(endpoints[type])
     const json = await res.json()
+    
+    // Debug: ver qué devuelve la API
+    console.log('Respuesta completa de la API:', JSON.stringify(json, null, 2))
     
     if (json && json.results && json.results && json.results.url) {
       return json.results.url
@@ -29,7 +26,7 @@ const getReaction = async (type) => {
 }
 
 export default {
-  command: ['hug', 'kiss', 'pat', 'slap', 'bite', 'punch', 'cry', 'smile', 'blush', 'wave'],
+  command: ['hug', 'kiss', 'pat', 'slap'],
   description: 'Reacciones anime',
   execute: async ({ sock, m, command }) => {
     try {
@@ -55,11 +52,6 @@ export default {
       )
     } catch (error) {
       console.error('Error en reacciones anime:', error)
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: '❌ Error al enviar la reacción.' },
-        { quoted: m }
-      )
     }
   }
 }
