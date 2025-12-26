@@ -15,15 +15,17 @@ export default {
 
       await sock.sendMessage(m.key.remoteJid, { text: `⏳ Descargando: *${video.title}*...` }, { quoted: m })
 
-      const res = await fetch(`https://api.zenkey.my.id/api/download/ytmp3?url=${video.url}`)
-      const json = await res.json()
-      
-      if (!json.status) throw new Error('API Error')
+      const response = await fetch(`https://api.siputzx.my.id/api/dwnld/ytmp3?url=${video.url}`)
+      const json = await response.json()
+
+      if (!json.status || !json.data?.dl) {
+        throw new Error('Fallo en la descarga')
+      }
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          audio: { url: json.result.download_url },
+          audio: { url: json.data.dl },
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
         },
@@ -31,7 +33,7 @@ export default {
       )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error de conexión con YouTube (IP Bloqueada). Intenta de nuevo.' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Error al obtener el audio. Intenta de nuevo más tarde ❌' }, { quoted: m })
     }
   }
 }
