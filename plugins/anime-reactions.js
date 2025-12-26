@@ -12,10 +12,21 @@ const getReaction = async (type) => {
     const res = await fetch(endpoints[type])
     const json = await res.json()
     
-    if (json && json.results && json.results && json.results.url) {
-      return json.results.url
+    // Verificar que json es un objeto y tiene resultados
+    if (!json || !Array.isArray(json.results) || json.results.length === 0) {
+      console.error('Respuesta de la API no es válida:', json)
+      return null
     }
-    return null
+    
+    // Extraer la URL del primer resultado
+    const url = json.results.url
+    
+    if (!url) {
+      console.error('URL no encontrada en la respuesta:', json)
+      return null
+    }
+    
+    return url
   } catch (error) {
     console.error(`Error obteniendo ${type}:`, error)
     return null
@@ -37,10 +48,14 @@ export default {
         )
       }
 
+      // Descargar el GIF como buffer
+      const response = await fetch(url)
+      const buffer = await response.buffer()
+
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: { url },
+          video: buffer,
           caption: `*${command.toUpperCase()}* 💕`,
           gifPlayback: true
         },
