@@ -1,6 +1,5 @@
 import fetch from 'node-fetch'
 import yts from 'yt-search'
-import ytdl from '@distube/ytdl-core'
 
 export default {
   command: ['play'],
@@ -14,45 +13,42 @@ export default {
       const video = search.videos[0]
       if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
 
-      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Descargando: *${video.title}*...` }, { quoted: m })
 
-      const stream = ytdl(video.url, {
-        filter: 'audioonly',
-        quality: 'highestaudio',
-        requestOptions: {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
-          }
+      // Usando una API de descarga directa que no depende de tu IP
+      const apiUrl = `https://api.lolhuman.xyz/api/ytaudio2?apikey=GataDios&url=${video.url}`
+      const res = await fetch(apiUrl)
+      const json = await res.json()
+
+      if (json.status !== 200) {
+        // Segundo intento con API de respaldo
+        const res2 = await fetch(`https://api.cafirexos.com/api/ytmp3?url=${video.url}`)
+        const json2 = await res2.json()
+        
+        if (!json2.status || !json2.result?.url) {
+          throw new Error('Todas las APIs fallaron')
         }
-      })
 
-      const chunks = []
-      for await (const chunk of stream) {
-        chunks.push(chunk)
+        return await sock.sendMessage(m.key.remoteJid, {
+          audio: { url: json2.result.url },
+          mimetype: 'audio/mp4',
+          fileName: `${video.title}.mp3`
+        }, { quoted: m })
       }
-      const buffer = Buffer.concat(chunks)
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          audio: buffer,
+          audio: { url: json.result.link },
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
         },
         { quoted: m }
       )
+
     } catch (e) {
       console.error(e)
-      // Intento final con una API de emergencia si el buffer falla
-      try {
-        const api = await fetch(`https://api.tostadora.org/api/ytdl/mp3?url=${encodeURIComponent(text)}`)
-        const res = await api.json()
-        if (res.url) {
-          return await sock.sendMessage(m.key.remoteJid, { audio: { url: res.url }, mimetype: 'audio/mp4' }, { quoted: m })
-        }
-      } catch (e2) {}
-      
-      sock.sendMessage(m.key.remoteJid, { text: 'Error al procesar el audio. YouTube está bloqueando la conexión del servidor ❌' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Las APIs de YouTube están saturadas. Intenta más tarde ❌' }, { quoted: m })
     }
   }
 }
