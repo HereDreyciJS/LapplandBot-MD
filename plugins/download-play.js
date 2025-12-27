@@ -13,36 +13,37 @@ export default {
       const video = search.videos[0]
       if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
 
-      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Buscando y descargando: *${video.title}*...` }, { quoted: m })
 
       let downloadUrl = null
 
-      // Intento 1: Siputzx
+      // Intento 1: API de AlyaChan (Muy estable actualmente)
       try {
-        const resSiput = await fetch(`https://api.siputzx.my.id/api/dwnld/ytmp3?url=${video.url}`)
-        const jsonSiput = await resSiput.json()
-        if (jsonSiput.status && jsonSiput.data?.dl) {
-          downloadUrl = jsonSiput.data.dl
-        }
-      } catch (e) {
-        console.log('Error en Siputzx, probando Vreden...')
-      }
+        const res1 = await fetch(`https://api.alyachan.dev/api/ytmp3?url=${video.url}&apikey=GataDios`)
+        const json1 = await res1.json()
+        if (json1.status && json1.data?.url) downloadUrl = json1.data.url
+      } catch (e) {}
 
-      // Intento 2: Vreden (si el primero falló)
+      // Intento 2: API de Ryzendesu (Backup)
       if (!downloadUrl) {
         try {
-          const resVreden = await fetch(`https://api.vreden.my.id/api/ytmp3?url=${video.url}`)
-          const jsonVreden = await resVreden.json()
-          if (jsonVreden.status && jsonVreden.result?.download?.url) {
-            downloadUrl = jsonVreden.result.download.url
-          }
-        } catch (e) {
-          console.log('Error en Vreden')
-        }
+          const res2 = await fetch(`https://api.ryzendesu.vip/api/downloader/ytmp3?url=${video.url}`)
+          const json2 = await res2.json()
+          if (json2.url) downloadUrl = json2.url
+        } catch (e) {}
+      }
+
+      // Intento 3: API de Tostadora (Emergencia)
+      if (!downloadUrl) {
+        try {
+          const res3 = await fetch(`https://api.tostadora.org/api/ytdl/mp3?url=${encodeURIComponent(video.url)}`)
+          const json3 = await res3.json()
+          if (json3.url) downloadUrl = json3.url
+        } catch (e) {}
       }
 
       if (!downloadUrl) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'Ambas APIs están caídas, intenta más tarde ❌' }, { quoted: m })
+        return sock.sendMessage(m.key.remoteJid, { text: 'Todas las rutas de descarga están saturadas por ahora. Intenta de nuevo en unos minutos ❌' }, { quoted: m })
       }
 
       await sock.sendMessage(
@@ -57,7 +58,7 @@ export default {
 
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado al procesar el comando ❌' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Error inesperado. Verifica tu conexión.' }, { quoted: m })
     }
   }
 }
