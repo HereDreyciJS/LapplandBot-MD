@@ -5,7 +5,7 @@ export default {
   command: ['play'],
   description: 'Descarga música de YouTube',
   execute: async ({ sock, m, args }) => {
-    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: '¿Qué canción quieres? 🎶' }, { quoted: m })
+    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: '¿Qué canción quieres escuchar? 🎶' }, { quoted: m })
 
     const text = args.join(' ')
     try {
@@ -13,33 +13,42 @@ export default {
       const video = search.videos[0]
       if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
 
-      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Descargando: *${video.title}*...` }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
 
-      // Usando una API de descarga directa que no depende de tu IP
-      const apiUrl = `https://api.lolhuman.xyz/api/ytaudio2?apikey=GataDios&url=${video.url}`
-      const res = await fetch(apiUrl)
-      const json = await res.json()
+      let downloadUrl = null
 
-      if (json.status !== 200) {
-        // Segundo intento con API de respaldo
-        const res2 = await fetch(`https://api.cafirexos.com/api/ytmp3?url=${video.url}`)
-        const json2 = await res2.json()
-        
-        if (!json2.status || !json2.result?.url) {
-          throw new Error('Todas las APIs fallaron')
+      // Intento 1: Siputzx
+      try {
+        const resSiput = await fetch(`https://api.siputzx.my.id/api/dwnld/ytmp3?url=${video.url}`)
+        const jsonSiput = await resSiput.json()
+        if (jsonSiput.status && jsonSiput.data?.dl) {
+          downloadUrl = jsonSiput.data.dl
         }
+      } catch (e) {
+        console.log('Error en Siputzx, probando Vreden...')
+      }
 
-        return await sock.sendMessage(m.key.remoteJid, {
-          audio: { url: json2.result.url },
-          mimetype: 'audio/mp4',
-          fileName: `${video.title}.mp3`
-        }, { quoted: m })
+      // Intento 2: Vreden (si el primero falló)
+      if (!downloadUrl) {
+        try {
+          const resVreden = await fetch(`https://api.vreden.my.id/api/ytmp3?url=${video.url}`)
+          const jsonVreden = await resVreden.json()
+          if (jsonVreden.status && jsonVreden.result?.download?.url) {
+            downloadUrl = jsonVreden.result.download.url
+          }
+        } catch (e) {
+          console.log('Error en Vreden')
+        }
+      }
+
+      if (!downloadUrl) {
+        return sock.sendMessage(m.key.remoteJid, { text: 'Ambas APIs están caídas, intenta más tarde ❌' }, { quoted: m })
       }
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          audio: { url: json.result.link },
+          audio: { url: downloadUrl },
           mimetype: 'audio/mp4',
           fileName: `${video.title}.mp3`
         },
@@ -48,7 +57,7 @@ export default {
 
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Las APIs de YouTube están saturadas. Intenta más tarde ❌' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado al procesar el comando ❌' }, { quoted: m })
     }
   }
 }
