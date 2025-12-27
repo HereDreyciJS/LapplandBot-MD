@@ -13,37 +13,36 @@ export default {
       const video = search.videos[0]
       if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
 
-      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Buscando y descargando: *${video.title}*...` }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
 
       let downloadUrl = null
 
-      // Intento 1: API de AlyaChan (Muy estable actualmente)
+      // Intento 1: GawrGura API
       try {
-        const res1 = await fetch(`https://api.alyachan.dev/api/ytmp3?url=${video.url}&apikey=GataDios`)
-        const json1 = await res1.json()
-        if (json1.status && json1.data?.url) downloadUrl = json1.data.url
-      } catch (e) {}
-
-      // Intento 2: API de Ryzendesu (Backup)
-      if (!downloadUrl) {
-        try {
-          const res2 = await fetch(`https://api.ryzendesu.vip/api/downloader/ytmp3?url=${video.url}`)
-          const json2 = await res2.json()
-          if (json2.url) downloadUrl = json2.url
-        } catch (e) {}
+        const resGura = await fetch(`https://gawrgura-api.onrender.com/api/download/ytmp3?url=${video.url}`)
+        const jsonGura = await resGura.json()
+        if (jsonGura.status && jsonGura.result?.download?.url) {
+          downloadUrl = jsonGura.result.download.url
+        }
+      } catch (e) {
+        console.log('Error en GawrGura, probando Dark-Core...')
       }
 
-      // Intento 3: API de Tostadora (Emergencia)
+      // Intento 2: Dark-Core API
       if (!downloadUrl) {
         try {
-          const res3 = await fetch(`https://api.tostadora.org/api/ytdl/mp3?url=${encodeURIComponent(video.url)}`)
-          const json3 = await res3.json()
-          if (json3.url) downloadUrl = json3.url
-        } catch (e) {}
+          const resDark = await fetch(`https://dark-core-api.vercel.app/api/download/ytmp3/v2?key=api&url=${video.url}`)
+          const jsonDark = await resDark.json()
+          if (jsonDark.status && jsonDark.result?.download?.url) {
+            downloadUrl = jsonDark.result.download.url
+          }
+        } catch (e) {
+          console.log('Error en Dark-Core')
+        }
       }
 
       if (!downloadUrl) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'Todas las rutas de descarga están saturadas por ahora. Intenta de nuevo en unos minutos ❌' }, { quoted: m })
+        return sock.sendMessage(m.key.remoteJid, { text: 'Ambas APIs de descarga están fallando en este momento ❌' }, { quoted: m })
       }
 
       await sock.sendMessage(
@@ -58,7 +57,7 @@ export default {
 
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error inesperado. Verifica tu conexión.' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado ❌' }, { quoted: m })
     }
   }
 }
