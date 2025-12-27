@@ -11,9 +11,8 @@ export default {
     try {
       const search = await yts(text)
       const video = search.videos[0]
-      if (!video) return sock.sendMessage(m.key.remoteJid, { text: '🌑 *Lappland:* No encontré esa canción entre las nubes...' }, { quoted: m })
+      if (!video) return sock.sendMessage(m.key.remoteJid, { text: '🌑 *Lappland:* No encontré esa canción entre la oscuridad de la noche...' }, { quoted: m })
 
-      // Decoración temática Nubes / Midnight
       const infoText = `
 ☁️ ────────────── 🌑
      *LAPPLAND • MUSIC*
@@ -30,7 +29,6 @@ export default {
 
       let downloadUrl = null
 
-      // Intento 1: GawrGura API
       try {
         const resGura = await fetch(`https://gawrgura-api.onrender.com/api/download/ytmp3?url=${video.url}`)
         const jsonGura = await resGura.json()
@@ -39,7 +37,6 @@ export default {
         }
       } catch (e) {}
 
-      // Intento 2: Dark-Core API
       if (!downloadUrl) {
         try {
           const resDark = await fetch(`https://dark-core-api.vercel.app/api/download/ytmp3/v2?key=api&url=${video.url}`)
@@ -54,7 +51,6 @@ export default {
         return sock.sendMessage(m.key.remoteJid, { text: '☁️ *Lappland:* La descarga se perdió en la tormenta. Intenta luego.' }, { quoted: m })
       }
 
-      // Envío directo como Nota de Voz (PTT)
       await sock.sendMessage(
         m.key.remoteJid,
         {
