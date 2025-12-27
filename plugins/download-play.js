@@ -3,7 +3,7 @@ import yts from 'yt-search'
 
 export default {
   command: ['play'],
-  description: 'Descarga música de YouTube',
+  description: 'Descarga música como nota de voz (PTT)',
   execute: async ({ sock, m, args }) => {
     if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: '¿Qué canción quieres escuchar? 🎶' }, { quoted: m })
 
@@ -13,7 +13,12 @@ export default {
       const video = search.videos[0]
       if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
 
-      await sock.sendMessage(m.key.remoteJid, { text: `⏳ Procesando: *${video.title}*...` }, { quoted: m })
+      const infoText = `✨ *LapplandBot - Play* ✨\n━━━━━━━━━━━━━━━━\n📝 *Título:* ${video.title}\n⏱️ *Duración:* ${video.timestamp}\n━━━━━━━━━━━━━━━━\n⏳ _Enviando nota de voz..._`.trim()
+
+      await sock.sendMessage(m.key.remoteJid, { 
+        image: { url: video.thumbnail }, 
+        caption: infoText 
+      }, { quoted: m })
 
       let downloadUrl = null
 
@@ -24,9 +29,7 @@ export default {
         if (jsonGura.status && jsonGura.result?.download?.url) {
           downloadUrl = jsonGura.result.download.url
         }
-      } catch (e) {
-        console.log('Error en GawrGura, probando Dark-Core...')
-      }
+      } catch (e) {}
 
       // Intento 2: Dark-Core API
       if (!downloadUrl) {
@@ -36,21 +39,20 @@ export default {
           if (jsonDark.status && jsonDark.result?.download?.url) {
             downloadUrl = jsonDark.result.download.url
           }
-        } catch (e) {
-          console.log('Error en Dark-Core')
-        }
+        } catch (e) {}
       }
 
       if (!downloadUrl) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'Ambas APIs de descarga están fallando en este momento ❌' }, { quoted: m })
+        return sock.sendMessage(m.key.remoteJid, { text: '❌ Error: APIs fuera de servicio.' }, { quoted: m })
       }
 
+      // Envío como Nota de Voz (PTT)
       await sock.sendMessage(
         m.key.remoteJid,
         {
           audio: { url: downloadUrl },
           mimetype: 'audio/mp4',
-          fileName: `${video.title}.mp3`
+          ptt: true // <--- Esto hace que parezca una grabación de voz
         },
         { quoted: m }
       )
