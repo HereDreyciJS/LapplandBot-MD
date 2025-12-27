@@ -5,7 +5,7 @@ export default {
   command: ['play'],
   description: 'Descarga música como nota de voz (PTT)',
   execute: async ({ sock, m, args }) => {
-    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: '¿Qué canción quieres escuchar? 🎶' }, { quoted: m })
+    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: 'Proporcione el enlace o nombre del video 🎶' }, { quoted: m })
 
     const text = args.join(' ')
     try {
