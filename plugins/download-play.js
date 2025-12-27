@@ -3,17 +3,25 @@ import yts from 'yt-search'
 
 export default {
   command: ['play'],
-  description: 'Descarga música como nota de voz (PTT)',
+  description: 'Descarga música con estética de medianoche y nubes',
   execute: async ({ sock, m, args }) => {
-    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: 'Proporcione el enlace o nombre del video 🎶' }, { quoted: m })
+    if (args.length === 0) return sock.sendMessage(m.key.remoteJid, { text: '☁️ *Lappland:* ¿Qué melodía quieres que busque en esta noche? 🎶' }, { quoted: m })
 
     const text = args.join(' ')
     try {
       const search = await yts(text)
       const video = search.videos[0]
-      if (!video) return sock.sendMessage(m.key.remoteJid, { text: 'No encontré resultados 😿' }, { quoted: m })
+      if (!video) return sock.sendMessage(m.key.remoteJid, { text: '🌑 *Lappland:* No encontré esa canción entre las nubes...' }, { quoted: m })
 
-      const infoText = `✨ *LapplandBot - Play* ✨\n━━━━━━━━━━━━━━━━\n📝 *Título:* ${video.title}\n⏱️ *Duración:* ${video.timestamp}\n━━━━━━━━━━━━━━━━\n⏳ _Enviando nota de voz..._`.trim()
+      // Decoración temática Nubes / Midnight
+      const infoText = `
+☁️ ────────────── 🌑
+     *LAPPLAND • MUSIC*
+───────────────
+🌙 *TÍTULO:* ${video.title}
+⏳ *TIEMPO:* ${video.timestamp}
+🌑 *ESTADO:* Enviando nota de voz...
+───────────────`.trim()
 
       await sock.sendMessage(m.key.remoteJid, { 
         image: { url: video.thumbnail }, 
@@ -43,23 +51,23 @@ export default {
       }
 
       if (!downloadUrl) {
-        return sock.sendMessage(m.key.remoteJid, { text: '❌ Error: APIs fuera de servicio.' }, { quoted: m })
+        return sock.sendMessage(m.key.remoteJid, { text: '☁️ *Lappland:* La descarga se perdió en la tormenta. Intenta luego.' }, { quoted: m })
       }
 
-      // Envío como Nota de Voz (PTT)
+      // Envío directo como Nota de Voz (PTT)
       await sock.sendMessage(
         m.key.remoteJid,
         {
           audio: { url: downloadUrl },
           mimetype: 'audio/mp4',
-          ptt: true // <--- Esto hace que parezca una grabación de voz
+          ptt: true
         },
         { quoted: m }
       )
 
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Ocurrió un error inesperado ❌' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: '☁️ *Lappland:* Hubo un error inesperado... ❌' }, { quoted: m })
     }
   }
 }
