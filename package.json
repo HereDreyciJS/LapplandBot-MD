@@ -19,8 +19,9 @@
     "dotenv": "^16.4.5",
     "yt-search": "^2.10.4",
     "@distube/ytdl-core": "^4.14.4",
-    "waifus-sticker": "^1.0.1"
+    "waifus-sticker-api": "^1.0.1"
   }
 }
+
 
 
