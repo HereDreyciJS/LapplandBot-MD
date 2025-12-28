@@ -5,18 +5,25 @@ export default {
   description: 'Crea stickers mediante API externa',
   execute: async ({ sock, m, pushName }) => {
     try {
-      let q = m.quoted ? m.quoted : m
-      let mime = (q.msg || q).mimetype || ''
+      // Intentamos obtener el mensaje citado o el mensaje actual
+      let q = m.message?.extendedTextMessage?.contextInfo?.quotedMessage ? m.message.extendedTextMessage.contextInfo.quotedMessage : m.message
+      
+      // Buscamos el tipo de contenido (imagen o video)
+      let type = Object.keys(q)[0]
+      let msg = q[type]
+      let mime = msg?.mimetype || ''
 
       if (!/image|video/.test(mime)) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'Responde a una imagen o video corto.' }, { quoted: m })
+        return sock.sendMessage(m.key.remoteJid, { 
+          text: `❌ *Error:* No detecto ninguna imagen o video.\n\nResponde a una imagen con */s* o envíala con el comando en el texto.` 
+        }, { quoted: m })
       }
 
-      let img = await q.download()
+      // Descargamos el contenido usando la función de sock
+      // Si tu base usa 'm.download()', cámbialo aquí:
+      let img = await sock.downloadMediaMessage(q)
       if (!img) return
 
-      // Usamos una API de conversión externa que acepta buffers
-      // Esta API convierte tu imagen/video a un sticker WebP con metadatos
       const response = await fetch('https://api.sticker-api.com/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,7 +31,7 @@ export default {
           image: img.toString('base64'),
           packname: 'LapplandBot-MD',
           author: pushName,
-          type: 'full' // o 'crop' para recortar
+          type: 'full'
         })
       })
 
@@ -39,7 +46,7 @@ export default {
 
     } catch (e) {
       console.error(e)
-      await sock.sendMessage(m.key.remoteJid, { text: '❌ Error de conexión con la API de stickers.' }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: '❌ Asegúrate de estar respondiendo a una imagen o video.' }, { quoted: m })
     }
   }
 }
