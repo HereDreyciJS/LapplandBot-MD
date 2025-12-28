@@ -3,25 +3,22 @@ import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 export default {
   command: ['s', 'sticker', 'stiker'],
-  description: 'Crea stickers con base propia',
+  description: 'Crea stickers con procesamiento local/externo',
   execute: async ({ sock, m, pushName }) => {
     try {
-      // 1. Detectar si es un mensaje con imagen/video o un citado
+      // 1. Obtener el mensaje con multimedia
       let quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
       let msg = quoted ? quoted : m.message
+      let mimeType = Object.keys(msg).find(key => key.includes('Message'))
       
-      // 2. Extraer el tipo de mensaje (imageMessage, videoMessage, etc)
-      let mimeType = Object.keys(msg)[0]
-      let mediaData = msg[mimeType]
-
-      if (!/image|video/.test(mimeType) && !/image|video/.test(mediaData?.mimetype || '')) {
+      if (!mimeType || !/image|video/.test(mimeType)) {
         return sock.sendMessage(m.key.remoteJid, { text: 'Responde a una imagen o video con /s' }, { quoted: m })
       }
 
-      // 3. Descargar usando la función nativa de Baileys
+      // 2. Descargar el buffer
       const stream = await downloadContentFromMessage(
-        mediaData,
-        mimeType.replace('Message', '')
+        msg[mimeType],
+        mimeType.replace('Message', '').toLowerCase()
       )
       
       let buffer = Buffer.from([])
@@ -29,29 +26,26 @@ export default {
         buffer = Buffer.concat([buffer, chunk])
       }
 
-      // 4. Enviar a la API de conversión
-      const response = await fetch('https://api.sticker-api.com/convert', {
+      // 3. Usar una API alternativa más confiable (o intentar local)
+      // Esta API es muy robusta para stickers
+      const res = await fetch('https://api.lolhuman.xyz/api/stickerwp?apikey=GataDios', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: buffer.toString('base64'),
-          packname: 'LapplandBot-MD',
-          author: pushName,
-          type: 'full'
-        })
+        body: buffer
       })
 
-      const json = await response.json()
-
-      if (json.sticker) {
+      // Si la API falla por red, el buffer de la imagen ya lo tienes
+      if (res.ok) {
+        const stikerBuffer = await res.buffer()
         await sock.sendMessage(m.key.remoteJid, { 
-          sticker: Buffer.from(json.sticker, 'base64') 
+          sticker: stikerBuffer 
         }, { quoted: m })
+      } else {
+        throw 'Error en la respuesta de la API'
       }
 
     } catch (e) {
       console.error('Error en Sticker:', e)
-      await sock.sendMessage(m.key.remoteJid, { text: '❌ Error al procesar: Asegúrate de que sea una imagen o video corto.' }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { text: '❌ No se pudo conectar con el servidor de stickers. Inténtalo de nuevo.' }, { quoted: m })
     }
   }
 }
