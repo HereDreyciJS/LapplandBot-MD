@@ -1,20 +1,20 @@
 import fetch from 'node-fetch'
 
-const endpoints = {
-  hug: 'https://nekos.best/api/v2/hug',
-  kiss: 'https://nekos.best/api/v2/kiss',
-  pat: 'https://nekos.best/api/v2/pat',
-  slap: 'https://nekos.best/api/v2/slap'
+const actionPhrases = {
+  hug: 'abrazó a',
+  kiss: 'besó a',
+  pat: 'acarició a',
+  slap: 'le dio una cachetada a'
 }
 
 const getReactionData = async (type) => {
   try {
-    const res = await fetch(endpoints[type])
+    const res = await fetch(`https://api.waifu.pics/sfw/${type}`)
+    if (!res.ok) return null
     const json = await res.json()
-    const url = json?.results?.[0]?.url
+    const url = json?.url
     if (!url) return null
 
-    
     const videoRes = await fetch(url)
     const buffer = await videoRes.buffer()
     return buffer
@@ -28,6 +28,8 @@ export default {
   command: ['hug', 'kiss', 'pat', 'slap'],
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
+    await sock.sendPresenceUpdate('recording', m.key.remoteJid)
+
     const buffer = await getReactionData(command)
 
     if (!buffer) {
@@ -43,9 +45,13 @@ export default {
     const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
     const target = mentioned || quoted
 
-    let caption = `✨ /${command}`
+    const phrase = actionPhrases[command] || 'interactuó con'
+    let caption = ''
+
     if (target) {
-      caption = `@${sender.split('@')[0]} le dio un ${command} a @${target.split('@')[0]}`
+      caption = `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
+    } else {
+      caption = `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
     }
 
     await sock.sendMessage(
