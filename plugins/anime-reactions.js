@@ -12,24 +12,14 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      const res = await fetch(`${global.APIs.delirius.url}/search/tenor?q=anime ${command}`)
+      // Usamos waifu.pics que es la más compatible con buffers
+      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
-      
-      const results = json.data || json.results || []
-      let mp4 = null
+      if (!json.url) return
 
-      if (results.length > 0) {
-        const random = results[Math.floor(Math.random() * results.length)]
-        mp4 = random.media_formats?.mp4?.url || random.url
-      }
-
-      if (!mp4) {
-        const resBackup = await fetch(`https://api.waifu.pics/sfw/${command}`)
-        const jsonBackup = await resBackup.json()
-        mp4 = jsonBackup.url
-      }
-
-      if (!mp4) return
+      // DESCARGA EL BUFFER (Esto evita el fondo borroso)
+      const response = await fetch(json.url)
+      const buffer = await response.buffer()
 
       const sender = m.key.participant || m.key.remoteJid
       const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
@@ -44,16 +34,16 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: { url: mp4 },
+          video: buffer, // Enviamos el buffer directamente
           caption: caption,
           gifPlayback: true,
-          mimetype: 'video/mp4',
+          mimetype: 'video/mp4', // Engañamos a WA para que lo procese como video
           mentions: [sender, target].filter(Boolean)
         },
         { quoted: m }
       )
     } catch (e) {
-      console.error('Error en Reacciones:', e)
+      console.error('Error en el plugin:', e)
     }
   }
 }
