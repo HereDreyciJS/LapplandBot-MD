@@ -12,7 +12,7 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      const res = await fetch(`https://api.otakutv.icu/api/anime/${command}`)
+      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
       const mp4 = json?.url
 
@@ -46,7 +46,7 @@ export default {
       )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error en el servidor de reacciones' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Error al conectar con el servidor' }, { quoted: m })
     }
   }
 }
