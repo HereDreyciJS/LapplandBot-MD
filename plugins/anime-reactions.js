@@ -14,11 +14,9 @@ export default {
     try {
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
-      let url = json?.url
+      const url = json?.url
 
-      if (!url) {
-        return sock.sendMessage(m.key.remoteJid, { text: 'No se pudo obtener la reacción 😿' }, { quoted: m })
-      }
+      if (!url) return sock.sendMessage(m.key.remoteJid, { text: 'No se pudo obtener la reacción 😿' }, { quoted: m })
 
       const response = await fetch(url)
       const buffer = await response.buffer()
@@ -29,13 +27,9 @@ export default {
       const target = mentioned || quoted
 
       const phrase = actionPhrases[command] || 'interactuó con'
-      let caption = ''
-
-      if (target) {
-        caption = `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
-      } else {
-        caption = `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
-      }
+      let caption = target 
+        ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
+        : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
 
       await sock.sendMessage(
         m.key.remoteJid,
@@ -50,7 +44,6 @@ export default {
       )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error en el servidor de imágenes' }, { quoted: m })
     }
   }
 }
