@@ -9,17 +9,18 @@ const actionPhrases = {
 
 export default {
   command: ['hug', 'kiss', 'pat', 'slap'],
-  description: 'Reacciones anime con GIFs',
+  description: 'Reacciones anime con GIFs de Tenor',
   execute: async ({ sock, m, command }) => {
     try {
-      const res = await fetch(`https://deliriussapi-oficial.vercel.app/api/${command}`)
+      const res = await fetch(`${global.APIs.delirius.url}/search/tenor?q=anime ${command}`)
       const json = await res.json()
-      const url = json.url
+      
+      const results = json.data || json.results
+      const random = results[Math.floor(Math.random() * results.length)]
+      
+      const mp4 = random.media_formats?.mp4?.url || random.url
 
-      if (!url) return
-
-      const response = await fetch(url)
-      const buffer = await response.buffer()
+      if (!mp4) return
 
       const sender = m.key.participant || m.key.remoteJid
       const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
@@ -34,7 +35,7 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: buffer,
+          video: { url: mp4 },
           caption: caption,
           gifPlayback: true,
           mimetype: 'video/mp4',
