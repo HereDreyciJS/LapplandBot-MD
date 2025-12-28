@@ -14,11 +14,14 @@ export default {
     try {
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
-      const mp4 = json?.url
+      let url = json?.url
 
-      if (!mp4) {
+      if (!url) {
         return sock.sendMessage(m.key.remoteJid, { text: 'No se pudo obtener la reacción 😿' }, { quoted: m })
       }
+
+      const response = await fetch(url)
+      const buffer = await response.buffer()
 
       const sender = m.key.participant || m.key.remoteJid
       const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
@@ -37,16 +40,17 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: { url: mp4 },
+          video: buffer,
           caption: caption,
           gifPlayback: true,
+          mimetype: 'video/mp4',
           mentions: [sender, target].filter(Boolean)
         },
         { quoted: m }
       )
     } catch (e) {
       console.error(e)
-      sock.sendMessage(m.key.remoteJid, { text: 'Error al conectar con el servidor' }, { quoted: m })
+      sock.sendMessage(m.key.remoteJid, { text: 'Error en el servidor de imágenes' }, { quoted: m })
     }
   }
 }
