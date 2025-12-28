@@ -1,49 +1,47 @@
-import fetch from 'node-fetch'
-
-const actionPhrases = {
-  hug: 'abrazó a',
-  kiss: 'besó a',
-  pat: 'acarició a',
-  slap: 'le dio una cachetada a'
-}
+import { sticker } from '../lib/sticker.js'
+import { uploadFile } from '../lib/uploadFile.js'
 
 export default {
-  command: ['hug', 'kiss', 'pat', 'slap'],
-  description: 'Reacciones anime con GIFs',
-  execute: async ({ sock, m, command }) => {
+  command: ['s', 'sticker', 'stiker'],
+  description: 'Convierte imágenes o videos en stickers',
+  execute: async ({ sock, m, pushName }) => {
     try {
-      // Usamos waifu.pics que es la más compatible con buffers
-      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
-      const json = await res.json()
-      if (!json.url) return
+      let q = m.quoted ? m.quoted : m
+      let mime = (q.msg || q).mimetype || ''
 
-      // DESCARGA EL BUFFER (Esto evita el fondo borroso)
-      const response = await fetch(json.url)
-      const buffer = await response.buffer()
+      if (!/image|video/.test(mime)) {
+        return sock.sendMessage(m.key.remoteJid, { 
+          text: `Responde a una imagen o video con el comando */s* para crear un sticker.` 
+        }, { quoted: m })
+      }
 
-      const sender = m.key.participant || m.key.remoteJid
-      const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-      const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
-      const target = mentioned || quoted
+      let img = await q.download()
+      if (!img) throw 'No se pudo descargar el contenido'
 
-      const phrase = actionPhrases[command] || 'interactuó con'
-      let caption = target 
-        ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
-        : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
+      let stiker = false
+      try {
+        // Generar sticker con metadatos de LapplandBot
+        stiker = await sticker(img, false, 'LapplandBot-MD', pushName)
+      } catch (e) {
+        console.error('Error en conversión local:', e)
+      }
 
-      await sock.sendMessage(
-        m.key.remoteJid,
-        {
-          video: buffer, // Enviamos el buffer directamente
-          caption: caption,
-          gifPlayback: true,
-          mimetype: 'video/mp4', // Engañamos a WA para que lo procese como video
-          mentions: [sender, target].filter(Boolean)
-        },
-        { quoted: m }
-      )
+      if (!stiker) {
+        let link = await uploadFile(img)
+        stiker = await sticker(false, link, 'LapplandBot-MD', pushName)
+      }
+
+      if (stiker) {
+        await sock.sendMessage(m.key.remoteJid, { sticker: stiker }, { quoted: m })
+      } else {
+        throw 'La conversión falló'
+      }
+
     } catch (e) {
-      console.error('Error en el plugin:', e)
+      console.error(e)
+      await sock.sendMessage(m.key.remoteJid, { 
+        text: '❌ Hubo un fallo al procesar el sticker. Asegúrate de que el video sea corto (menos de 7 seg).' 
+      }, { quoted: m })
     }
   }
 }
