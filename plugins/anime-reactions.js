@@ -12,21 +12,17 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      // 1. Intentamos con tu API de Delirius (Búsqueda Tenor)
       const res = await fetch(`${global.APIs.delirius.url}/search/tenor?q=anime ${command}`)
       const json = await res.json()
       
-      // Extraemos los resultados (Delirius suele ponerlos en .data)
       const results = json.data || json.results || []
       let mp4 = null
 
       if (results.length > 0) {
         const random = results[Math.floor(Math.random() * results.length)]
-        // Buscamos el formato mp4 que es el que carga bien en WhatsApp
         mp4 = random.media_formats?.mp4?.url || random.url
       }
 
-      // 2. Respaldo: Si Tenor no dio resultados, usamos waifu.pics
       if (!mp4) {
         const resBackup = await fetch(`https://api.waifu.pics/sfw/${command}`)
         const jsonBackup = await resBackup.json()
