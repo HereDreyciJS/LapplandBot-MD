@@ -1,34 +1,40 @@
 import fetch from 'node-fetch'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 export default {
   command: ['s', 'sticker', 'stiker'],
-  description: 'Crea stickers mediante API externa',
+  description: 'Crea stickers con base propia',
   execute: async ({ sock, m, pushName }) => {
     try {
-      // Intentamos obtener el mensaje citado o el mensaje actual
-      let q = m.message?.extendedTextMessage?.contextInfo?.quotedMessage ? m.message.extendedTextMessage.contextInfo.quotedMessage : m.message
+      // 1. Detectar si es un mensaje con imagen/video o un citado
+      let quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
+      let msg = quoted ? quoted : m.message
       
-      // Buscamos el tipo de contenido (imagen o video)
-      let type = Object.keys(q)[0]
-      let msg = q[type]
-      let mime = msg?.mimetype || ''
+      // 2. Extraer el tipo de mensaje (imageMessage, videoMessage, etc)
+      let mimeType = Object.keys(msg)[0]
+      let mediaData = msg[mimeType]
 
-      if (!/image|video/.test(mime)) {
-        return sock.sendMessage(m.key.remoteJid, { 
-          text: `❌ *Error:* No detecto ninguna imagen o video.\n\nResponde a una imagen con */s* o envíala con el comando en el texto.` 
-        }, { quoted: m })
+      if (!/image|video/.test(mimeType) && !/image|video/.test(mediaData?.mimetype || '')) {
+        return sock.sendMessage(m.key.remoteJid, { text: 'Responde a una imagen o video con /s' }, { quoted: m })
       }
 
-      // Descargamos el contenido usando la función de sock
-      // Si tu base usa 'm.download()', cámbialo aquí:
-      let img = await sock.downloadMediaMessage(q)
-      if (!img) return
+      // 3. Descargar usando la función nativa de Baileys
+      const stream = await downloadContentFromMessage(
+        mediaData,
+        mimeType.replace('Message', '')
+      )
+      
+      let buffer = Buffer.from([])
+      for await (const chunk of stream) {
+        buffer = Buffer.concat([buffer, chunk])
+      }
 
+      // 4. Enviar a la API de conversión
       const response = await fetch('https://api.sticker-api.com/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: img.toString('base64'),
+          image: buffer.toString('base64'),
           packname: 'LapplandBot-MD',
           author: pushName,
           type: 'full'
@@ -38,15 +44,14 @@ export default {
       const json = await response.json()
 
       if (json.sticker) {
-        let stikerBuffer = Buffer.from(json.sticker, 'base64')
-        await sock.sendMessage(m.key.remoteJid, { sticker: stikerBuffer }, { quoted: m })
-      } else {
-        await sock.sendMessage(m.key.remoteJid, { text: '❌ La API no pudo procesar el sticker.' }, { quoted: m })
+        await sock.sendMessage(m.key.remoteJid, { 
+          sticker: Buffer.from(json.sticker, 'base64') 
+        }, { quoted: m })
       }
 
     } catch (e) {
-      console.error(e)
-      await sock.sendMessage(m.key.remoteJid, { text: '❌ Asegúrate de estar respondiendo a una imagen o video.' }, { quoted: m })
+      console.error('Error en Sticker:', e)
+      await sock.sendMessage(m.key.remoteJid, { text: '❌ Error al procesar: Asegúrate de que sea una imagen o video corto.' }, { quoted: m })
     }
   }
 }
