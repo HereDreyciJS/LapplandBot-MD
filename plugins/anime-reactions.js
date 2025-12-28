@@ -12,11 +12,11 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
+      const res = await fetch(`https://deliriussapi-oficial.vercel.app/api/${command}`)
       const json = await res.json()
-      const url = json?.url
+      const url = json.url
 
-      if (!url) return sock.sendMessage(m.key.remoteJid, { text: 'No se pudo obtener la reacción 😿' }, { quoted: m })
+      if (!url) return
 
       const response = await fetch(url)
       const buffer = await response.buffer()
