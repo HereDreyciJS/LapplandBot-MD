@@ -6,7 +6,7 @@ export default {
   description: 'Crea stickers mediante buffer directo',
   execute: async ({ sock, m, pushName }) => {
     try {
-      // 1. Detectar el mensaje multimedia
+     
       let quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
       let msg = quoted ? quoted : m.message
       let mimeType = Object.keys(msg).find(v => v.includes('Message'))
@@ -15,7 +15,7 @@ export default {
         return sock.sendMessage(m.key.remoteJid, { text: 'Responde a una imagen o video corto.' }, { quoted: m })
       }
 
-      // 2. Descargar el buffer
+     
       const stream = await downloadContentFromMessage(
         msg[mimeType],
         mimeType.replace('Message', '').toLowerCase()
@@ -26,8 +26,7 @@ export default {
         buffer = Buffer.concat([buffer, chunk])
       }
 
-      // 3. Usar una API de conversión que acepta Base64 (evita errores de red ENOTFOUND)
-      // Esta es una alternativa que suele funcionar en Paneles
+      
       const base64 = buffer.toString('base64')
       const response = await fetch('https://api.lolhuman.xyz/api/stickerwp?apikey=GataDios', {
         method: 'POST',
@@ -38,7 +37,7 @@ export default {
 
       const stiker = await response.buffer()
 
-      // 4. Enviar
+     
       await sock.sendMessage(m.key.remoteJid, { 
         sticker: stiker 
       }, { quoted: m })
