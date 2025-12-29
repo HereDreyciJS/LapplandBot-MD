@@ -1,4 +1,11 @@
-const base64 = buffer.toString('base64')
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+import { Sticker } from 'wa-sticker-formatter'
+
+export default {
+  command: ['s', 'sticker', 'stiker'],
+  description: 'Crea stickers localmente',
+  execute: async ({ sock, m, pushName }) => {
+        const base64 = buffer.toString('base64')
       const response = await fetch('https://api.lolhuman.xyz/api/stickerwp?apikey=GataDios', {
         method: 'POST',
         body: buffer
