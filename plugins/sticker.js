@@ -3,24 +3,31 @@ import {
   getContentType,
   normalizeMessageContent
 } from '@whiskeysockets/baileys'
+
 import sharp from 'sharp'
-import { exec } from 'child_process'
+import { spawn } from 'child_process'
+import ffmpeg from 'ffmpeg-static'
 import fs from 'fs'
 import path from 'path'
 import { tmpdir } from 'os'
-import { promisify } from 'util'
 
-const execAsync = promisify(exec)
+function runFfmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const p = spawn(ffmpeg, args)
+    p.on('error', reject)
+    p.on('close', code => (code === 0 ? resolve() : reject(new Error(`ffmpeg ${code}`))))
+  })
+}
 
 export default {
   command: ['s', 'sticker', 'stiker'],
-  description: 'Crea stickers con sharp y ffmpeg',
   execute: async ({ sock, m }) => {
     try {
-      const q = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
-      const raw = q ?? m.message
-      const msg = normalizeMessageContent(raw)
-      const type = getContentType(msg)
+      const quoted =
+        m.message?.extendedTextMessage?.contextInfo?.quotedMessage
+
+      const message = normalizeMessageContent(quoted ?? m.message)
+      const type = getContentType(message)
 
       if (type !== 'imageMessage' && type !== 'videoMessage') {
         return sock.sendMessage(
@@ -31,35 +38,43 @@ export default {
       }
 
       const stream = await downloadContentFromMessage(
-        msg[type],
+        message[type],
         type === 'imageMessage' ? 'image' : 'video'
       )
 
       let buffer = Buffer.alloc(0)
       for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
 
-      const tmp = tmpdir()
-      const input = path.join(tmp, `${Date.now()}.${type === 'imageMessage' ? 'jpg' : 'mp4'}`)
-      const output = path.join(tmp, `${Date.now()}.webp`)
+      const input = path.join(
+        tmpdir(),
+        `${Date.now()}.${type === 'imageMessage' ? 'jpg' : 'mp4'}`
+      )
+      const output = path.join(tmpdir(), `${Date.now()}.webp`)
 
       fs.writeFileSync(input, buffer)
 
       if (type === 'imageMessage') {
         await sharp(input)
-          .resize(512, 512, { fit: 'inside' })
+          .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 80 })
           .toFile(output)
       } else {
-        await execAsync(
-          `ffmpeg -y -i "${input}" -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15" -t 6 -loop 0 -an -vsync 0 "${output}"`
-        )
+        await runFfmpeg([
+          '-y',
+          '-i', input,
+          '-vcodec', 'libwebp',
+          '-vf', 'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
+          '-loop', '0',
+          '-t', '6',
+          '-an',
+          '-vsync', '0',
+          output
+        ])
       }
-
-      const sticker = fs.readFileSync(output)
 
       await sock.sendMessage(
         m.key.remoteJid,
-        { sticker },
+        { sticker: fs.readFileSync(output) },
         { quoted: m }
       )
 
@@ -69,7 +84,7 @@ export default {
     } catch (e) {
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ Error al crear el sticker' },
+        { text: `❌ Error al crear el sticker: ${e.message}` },
         { quoted: m }
       )
     }
