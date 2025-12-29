@@ -1,4 +1,12 @@
 import fetch from 'node-fetch'
+import ffmpeg from 'fluent-ffmpeg'
+import ffmpegPath from 'ffmpeg-static'
+import { writeFile, readFile, rm } from 'fs/promises'
+import path from 'path'
+import os from 'os'
+import crypto from 'crypto'
+
+ffmpeg.setFfmpegPath(ffmpegPath)
 
 const actionPhrases = {
   hug: 'abrazó a',
@@ -7,54 +15,69 @@ const actionPhrases = {
   slap: 'le dio una cachetada a'
 }
 
+async function gifToMp4(gifBuffer) {
+  const id = crypto.randomBytes(8).toString('hex')
+  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
+  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
+
+  await writeFile(inPath, gifBuffer)
+
+  await new Promise((resolve, reject) => {
+    ffmpeg(inPath)
+      .outputOptions([
+        '-movflags faststart',
+        '-pix_fmt yuv420p',
+        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
+      ])
+      .noAudio()
+      .save(outPath)
+      .on('end', resolve)
+      .on('error', reject)
+  })
+
+  const mp4Buffer = await readFile(outPath)
+  await rm(inPath).catch(() => {})
+  await rm(outPath).catch(() => {})
+  return mp4Buffer
+}
+
 export default {
   command: ['hug', 'kiss', 'pat', 'slap'],
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      // Pedimos la URL del GIF desde waifu.pics
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
-      if (!res.ok) throw new Error('Waifu API no respondió correctamente')
       const json = await res.json()
-      if (!json.url) return
+      if (!json?.url) return
 
-      // Descarga el GIF como buffer (compatibilidad node-fetch v3)
-      const response = await fetch(json.url)
-      const arrayBuffer = await response.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
+      const gifRes = await fetch(json.url)
+      const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
+      const mp4Buffer = await gifToMp4(gifBuffer)
 
-      // Identificar remitente y destinatario
       const sender = m.key.participant || m.key.remoteJid
-      const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-      const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
+      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const mentioned = ctx?.mentionedJid?.[0]
+      const quoted = ctx?.participant
       const target = mentioned || quoted
 
-      // Generar frase del comando
       const phrase = actionPhrases[command] || 'interactuó con'
       const caption = target
         ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
         : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
 
-      // Enviar el GIF como video animado
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: buffer,
-          caption: caption,
-          gifPlayback: true,
+          video: mp4Buffer,
           mimetype: 'video/mp4',
+          gifPlayback: true,
+          caption,
           mentions: [sender, target].filter(Boolean)
         },
         { quoted: m }
       )
-
     } catch (e) {
       console.error('Error en el plugin:', e)
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: '❌ Error cargando el GIF' },
-        { quoted: m }
-      )
     }
   }
 }
