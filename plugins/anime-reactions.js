@@ -33,8 +33,7 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          document: gifBuffer,
-          fileName: `${command}.gif`,
+          image: gifBuffer,
           mimetype: 'image/gif',
           caption,
           mentions: [sender, target].filter(Boolean)
