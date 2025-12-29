@@ -12,36 +12,49 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
+      // Pedimos la URL del GIF desde waifu.pics
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
+      if (!res.ok) throw new Error('Waifu API no respondió correctamente')
       const json = await res.json()
-      if (!json?.url) return
+      if (!json.url) return
 
-      const gifRes = await fetch(json.url)
-      const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
+      // Descarga el GIF como buffer (compatibilidad node-fetch v3)
+      const response = await fetch(json.url)
+      const arrayBuffer = await response.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
 
+      // Identificar remitente y destinatario
       const sender = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo
-      const mentioned = ctx?.mentionedJid?.[0]
-      const quoted = ctx?.participant
+      const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
+      const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
       const target = mentioned || quoted
 
+      // Generar frase del comando
       const phrase = actionPhrases[command] || 'interactuó con'
       const caption = target
         ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
         : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
 
+      // Enviar el GIF como video animado
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          image: gifBuffer,
-          mimetype: 'image/gif',
-          caption,
+          video: buffer,
+          caption: caption,
+          gifPlayback: true,
+          mimetype: 'video/mp4',
           mentions: [sender, target].filter(Boolean)
         },
         { quoted: m }
       )
+
     } catch (e) {
-      console.error(e)
+      console.error('Error en el plugin:', e)
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { text: '❌ Error cargando el GIF' },
+        { quoted: m }
+      )
     }
   }
 }
