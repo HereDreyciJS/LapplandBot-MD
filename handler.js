@@ -13,28 +13,27 @@ export const handler = async (sock, m) => {
       msg.message.videoMessage?.caption ||
       ''
 
-    if (!body) return
-
+    
     const prefix = global.settings.bot.prefix
-    const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const isCommand = body.startsWith(prefix)
+    if (!body && !isCommand) return
 
-    const rawSender = isGroup
-      ? msg.key.participant
-      : msg.key.remoteJid
+    const isGroup = msg.key.remoteJid.endsWith('@g.us')
+
+   
+    const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
+    if (!rawSender) return 
 
     const senderNumber = rawSender.replace(/\D/g, '')
     const isOwner = global.settings.bot.owners.includes(senderNumber)
 
     let isAdmin = false
-
     if (isGroup) {
       try {
         const meta = await sock.groupMetadata(msg.key.remoteJid)
-        const participant = meta.participants.find(
-          p => p.id.replace(/\D/g, '') === senderNumber
-        )
-        isAdmin = !!participant?.admin
+       
+        const participant = meta.participants.find(p => p.id === rawSender)
+        isAdmin = !!(participant?.admin || participant?.isSuperAdmin)
       } catch {
         isAdmin = false
       }
@@ -51,22 +50,16 @@ export const handler = async (sock, m) => {
     const plugin = global.plugins.get(command)
     if (!plugin || typeof plugin.execute !== 'function') return
 
+   
     if (plugin.owner && !isOwner) {
-      return sock.sendMessage(
-        msg.key.remoteJid,
-        { text: '❌ Este comando es solo para el owner.' },
-        { quoted: msg }
-      )
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para el owner.' }, { quoted: msg })
     }
 
     if (plugin.admin && !isAdmin) {
-      return sock.sendMessage(
-        msg.key.remoteJid,
-        { text: '❌ Este comando es solo para administradores.' },
-        { quoted: msg }
-      )
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para administradores.' }, { quoted: msg })
     }
 
+    
     await plugin.execute({
       sock,
       m: msg,
@@ -76,9 +69,10 @@ export const handler = async (sock, m) => {
       command,
       isGroup,
       isOwner,
-      isAdmin
+      isAdmin,
+      pushName: msg.pushName
     })
   } catch (e) {
-    console.error(e)
+    console.error('Error en Handler:', e)
   }
 }
