@@ -14,15 +14,13 @@ import { tmpdir } from 'os'
 function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
     const p = spawn(ffmpeg, args)
-    let err = ''
-    p.stderr.on('data', d => err += d)
     p.on('error', reject)
-    p.on('close', c => c === 0 ? resolve() : reject(new Error(err || `ffmpeg ${c}`)))
+    p.on('close', c => c === 0 ? resolve() : reject(new Error(`ffmpeg ${c}`)))
   })
 }
 
 export default {
-  command: ['s','sticker','stiker'],
+  command: ['s', 'sticker', 'stiker'],
   execute: async ({ sock, m }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
@@ -74,7 +72,6 @@ export default {
 
       fs.unlinkSync(input)
       fs.unlinkSync(output)
-
     } catch (e) {
       await sock.sendMessage(
         m.key.remoteJid,
