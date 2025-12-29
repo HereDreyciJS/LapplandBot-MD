@@ -15,7 +15,9 @@ function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
     const p = spawn(ffmpeg, args)
     p.on('error', reject)
-    p.on('close', code => (code === 0 ? resolve() : reject(new Error(`ffmpeg ${code}`))))
+    p.on('close', code =>
+      code === 0 ? resolve() : reject(new Error(`ffmpeg ${code}`))
+    )
   })
 }
 
@@ -55,15 +57,23 @@ export default {
 
       if (type === 'imageMessage') {
         await sharp(input)
-          .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
+          .resize(512, 512, {
+            fit: 'inside',
+            withoutEnlargement: true
+          })
           .webp({ quality: 80 })
           .toFile(output)
-      } else {
+      }
+
+      if (type === 'videoMessage') {
         await runFfmpeg([
           '-y',
           '-i', input,
           '-vcodec', 'libwebp',
-          '-vf', 'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
+          '-vf',
+          'scale=512:512:force_original_aspect_ratio=decrease,' +
+          'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,' +
+          'fps=15',
           '-loop', '0',
           '-t', '6',
           '-an',
