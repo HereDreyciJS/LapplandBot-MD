@@ -12,38 +12,37 @@ export default {
   description: 'Reacciones anime con GIFs',
   execute: async ({ sock, m, command }) => {
     try {
-      // Usamos waifu.pics que es la más compatible con buffers
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
-      if (!json.url) return
+      if (!json?.url) return
 
-      // DESCARGA EL BUFFER (Esto evita el fondo borroso)
-      const response = await fetch(json.url)
-      const buffer = await response.buffer()
+      const gifRes = await fetch(json.url)
+      const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
 
       const sender = m.key.participant || m.key.remoteJid
-      const mentioned = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-      const quoted = m.message?.extendedTextMessage?.contextInfo?.participant
+      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const mentioned = ctx?.mentionedJid?.[0]
+      const quoted = ctx?.participant
       const target = mentioned || quoted
 
       const phrase = actionPhrases[command] || 'interactuó con'
-      let caption = target 
+      const caption = target
         ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
         : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: buffer, // Enviamos el buffer directamente
-          caption: caption,
-          gifPlayback: true,
-          mimetype: 'video/mp4', // Engañamos a WA para que lo procese como video
+          document: gifBuffer,
+          fileName: `${command}.gif`,
+          mimetype: 'image/gif',
+          caption,
           mentions: [sender, target].filter(Boolean)
         },
         { quoted: m }
       )
     } catch (e) {
-      console.error('Error en el plugin:', e)
+      console.error(e)
     }
   }
 }
