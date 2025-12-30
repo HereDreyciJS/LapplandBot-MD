@@ -1,7 +1,6 @@
 export default {
   command: ['socketonly'],
   description: 'Activa/desactiva modo solo socket en el grupo',
-  owner: true,
   execute: async ({ sock, m, args }) => {
     const sender = m.key.participant || m.key.remoteJid
     const botJid = sock.user.id
