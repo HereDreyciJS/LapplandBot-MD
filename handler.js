@@ -1,5 +1,8 @@
 import print from './lib/print.js'
 
+const socketOnlyGroups = new Map()
+global.socketOnlyGroups = socketOnlyGroups
+
 export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
@@ -13,14 +16,11 @@ export const handler = async (sock, m) => {
       msg.message.videoMessage?.caption ||
       ''
 
-    
     const prefix = global.settings.bot.prefix
     const isCommand = body.startsWith(prefix)
     if (!body && !isCommand) return
 
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
-
-   
     const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
     if (!rawSender) return 
 
@@ -31,7 +31,6 @@ export const handler = async (sock, m) => {
     if (isGroup) {
       try {
         const meta = await sock.groupMetadata(msg.key.remoteJid)
-       
         const participant = meta.participants.find(p => p.id === rawSender)
         isAdmin = !!(participant?.admin || participant?.isSuperAdmin)
       } catch {
@@ -47,10 +46,15 @@ export const handler = async (sock, m) => {
     const command = args.shift()?.toLowerCase()
     const text = args.join(' ')
 
+    const groupJid = isGroup ? msg.key.remoteJid : null
+    const botJid = sock.user.id
+    const sender = rawSender
+
+    if (isGroup && socketOnlyGroups.get(groupJid) && sender !== botJid) return
+
     const plugin = global.plugins.get(command)
     if (!plugin || typeof plugin.execute !== 'function') return
 
-   
     if (plugin.owner && !isOwner) {
       return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para el owner.' }, { quoted: msg })
     }
@@ -59,7 +63,6 @@ export const handler = async (sock, m) => {
       return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para administradores.' }, { quoted: msg })
     }
 
-    
     await plugin.execute({
       sock,
       m: msg,
