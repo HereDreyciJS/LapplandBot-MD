@@ -63,7 +63,7 @@ export default {
       const phrase = actionPhrases[command] || 'interactuó con'
       const caption = target
         ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
-        : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo`
+        : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
         m.key.remoteJid,
