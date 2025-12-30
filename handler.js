@@ -1,8 +1,5 @@
 import print from './lib/print.js'
 
-const socketOnlyGroups = new Map()
-global.socketOnlyGroups = socketOnlyGroups
-
 export const handler = async (sock, m) => {
   try {
     const msg = m.messages?.[0]
@@ -22,10 +19,11 @@ export const handler = async (sock, m) => {
 
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
-    if (!rawSender) return 
+    if (!rawSender) return
 
     const senderNumber = rawSender.replace(/\D/g, '')
     const isOwner = global.settings.bot.owners.includes(senderNumber)
+    const isBot = msg.key.fromMe === true
 
     let isAdmin = false
     if (isGroup) {
@@ -46,22 +44,28 @@ export const handler = async (sock, m) => {
     const command = args.shift()?.toLowerCase()
     const text = args.join(' ')
 
-    const groupJid = isGroup ? msg.key.remoteJid : null
-    const botJid = sock.user.id
-    const sender = rawSender
-
-   
-    if (isGroup && socketOnlyGroups.get(groupJid) && sender !== botJid) return
+    if (isGroup) {
+      const chat = global.db.getChat(msg.key.remoteJid)
+      if (chat.socketOnly && !isBot && !isOwner) return
+    }
 
     const plugin = global.plugins.get(command)
     if (!plugin || typeof plugin.execute !== 'function') return
 
     if (plugin.owner && !isOwner) {
-      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para el owner.' }, { quoted: msg })
+      return sock.sendMessage(
+        msg.key.remoteJid,
+        { text: '❌ Este comando es solo para el owner.' },
+        { quoted: msg }
+      )
     }
 
     if (plugin.admin && !isAdmin) {
-      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Este comando es solo para administradores.' }, { quoted: msg })
+      return sock.sendMessage(
+        msg.key.remoteJid,
+        { text: '❌ Este comando es solo para administradores.' },
+        { quoted: msg }
+      )
     }
 
     await plugin.execute({
