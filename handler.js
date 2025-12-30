@@ -50,7 +50,7 @@ export const handler = async (sock, m) => {
     const botJid = sock.user.id
     const sender = rawSender
 
-    // SOCKET-ONLY POR GRUPO
+   
     if (isGroup && socketOnlyGroups.get(groupJid) && sender !== botJid) return
 
     const plugin = global.plugins.get(command)
