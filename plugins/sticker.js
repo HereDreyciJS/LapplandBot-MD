@@ -4,6 +4,7 @@ import {
   normalizeMessageContent
 } from '@whiskeysockets/baileys'
 
+import { Sticker } from 'wa-sticker-formatter'
 import sharp from 'sharp'
 import { spawn } from 'child_process'
 import ffmpeg from 'ffmpeg-static'
@@ -23,7 +24,6 @@ function runFfmpeg(args) {
 
 export default {
   command: ['s', 'sticker', 'stiker'],
-  description: 'Crea stickers con nombre personalizado',
   execute: async ({ sock, m, pushName }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
@@ -37,14 +37,15 @@ export default {
       )
 
       let buffer = Buffer.alloc(0)
-      for await (const c of stream) buffer = Buffer.concat([buffer, c])
+      for (const chunk of await stream) {
+        buffer = Buffer.concat([buffer, chunk])
+      }
 
       const input = path.join(tmpdir(), `${Date.now()}.${type === 'imageMessage' ? 'jpg' : 'mp4'}`)
       const output = path.join(tmpdir(), `${Date.now()}.webp`)
       fs.writeFileSync(input, buffer)
 
       if (type === 'imageMessage') {
-        // CORRECCIÓN DE DEFORMACIÓN: fit 'contain' + fondo transparente
         await sharp(input)
           .resize(512, 512, {
             fit: 'contain',
@@ -66,25 +67,30 @@ export default {
         ])
       }
 
-      // ENVIAR STICKER (Aquí puedes configurar el nombre del paquete)
+      const webpBuffer = fs.readFileSync(output)
+      const sticker = new Sticker(webpBuffer, {
+        pack: 'Lappland Bot',
+        author: pushName || 'User',
+        type: 'default',
+        quality: 100
+      })
+
+      const finalBuffer = await sticker.toBuffer()
+
       await sock.sendMessage(
         m.key.remoteJid,
-        { 
-          sticker: fs.readFileSync(output)
-          // Si tu versión de Baileys lo soporta directamente:
-          // packname: "Lappland Bot",
-          // author: pushName
-        },
+        { sticker: finalBuffer },
         { quoted: m }
       )
 
-      fs.unlinkSync(input)
-      fs.unlinkSync(output)
+      if (fs.existsSync(input)) fs.unlinkSync(input)
+      if (fs.existsSync(output)) fs.unlinkSync(output)
 
     } catch (e) {
+      console.error(e)
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: `❌ Error al crear el sticker: ${e.message}` },
+        { text: `❌ Error: ${e.message}` },
         { quoted: m }
       )
     }
