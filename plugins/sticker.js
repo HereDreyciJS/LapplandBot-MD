@@ -36,8 +36,9 @@ export default {
         type === 'imageMessage' ? 'image' : 'video'
       )
 
+      // CORRECCIÓN AQUÍ: Descarga del buffer estable
       let buffer = Buffer.alloc(0)
-      for (const chunk of await stream) {
+      for await (const chunk of stream) {
         buffer = Buffer.concat([buffer, chunk])
       }
 
