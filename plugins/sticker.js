@@ -23,6 +23,7 @@ function runFfmpeg(args) {
 
 export default {
   command: ['s', 'sticker', 'stiker'],
+  description: 'Crea stickers',
   execute: async ({ sock, m }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
