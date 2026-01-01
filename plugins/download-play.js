@@ -2,10 +2,10 @@ import fetch from 'node-fetch'
 import yts from 'yt-search'
 
 export default {
-  command: ['play','yta','ytmp3','playaudio','play2','ytv','ytmp4','mp4'],
+  command: ['play','yta','ytmp3','playaudio','play2','ytmp4','mp4'],
   category: 'descargas',
   group: true,
-
+description: 'Descarga videos y audios de YouTube',
   execute: async ({ sock, m, text, command }) => {
     try {
       if (!text?.trim()) {
