@@ -1,5 +1,5 @@
 export default {
-  command: ['kick', 'expulsar'],
+  command: ['kick', 'expulsar', 'behead'],
   description: 'Expulsar a miembros del grupo',
   execute: async ({ sock, m, isGroup, isAdmin, isOwner }) => {
     if (!isGroup) {
