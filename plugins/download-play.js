@@ -5,7 +5,7 @@ export default {
   command: ['play','yta','ytmp3','playaudio','play2','ytmp4','mp4'],
   category: 'descargas',
   group: true,
-description: 'Descarga videos y audios de YouTube',
+description: 'Descarga audios y videos de YouTube',
   execute: async ({ sock, m, text, command }) => {
     try {
       if (!text?.trim()) {
