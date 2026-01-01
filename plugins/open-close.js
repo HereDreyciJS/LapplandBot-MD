@@ -18,7 +18,7 @@ export default {
       await sock.groupSettingUpdate(m.key.remoteJid, setting)
       
       const text = isOpening 
-        ? '🔓 *Grupo abierto.*\nAhora todos los participantes pueden enviar mensajes.' 
+        ? '🔓 *Grupo abierto.*\nAhora todos los integrantes pueden enviar mensajes.' 
         : '🔒 *Grupo cerrado.*\nAhora solo los administradores pueden enviar mensajes.'
 
       await sock.sendMessage(m.key.remoteJid, { text }, { quoted: m })
@@ -26,7 +26,7 @@ export default {
     } catch (e) {
       console.error('Error al cambiar ajuste del grupo:', e)
       await sock.sendMessage(m.key.remoteJid, { 
-        text: '❌ Hubo un error. Asegúrate de que el bot sea administrador.' 
+        text: '❌ El bot necesita ser administrador para poder usar este comando.' 
       }, { quoted: m })
     }
   }
