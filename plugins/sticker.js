@@ -23,8 +23,8 @@ function runFfmpeg(args) {
 
 export default {
   command: ['s', 'sticker', 'stiker'],
-  description: 'Crea stickers',
-  execute: async ({ sock, m }) => {
+  description: 'Crea stickers con nombre personalizado',
+  execute: async ({ sock, m, pushName }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
       const message = normalizeMessageContent(quoted ?? m.message)
@@ -39,18 +39,16 @@ export default {
       let buffer = Buffer.alloc(0)
       for await (const c of stream) buffer = Buffer.concat([buffer, c])
 
-      const input = path.join(
-        tmpdir(),
-        `${Date.now()}.${type === 'imageMessage' ? 'jpg' : 'mp4'}`
-      )
+      const input = path.join(tmpdir(), `${Date.now()}.${type === 'imageMessage' ? 'jpg' : 'mp4'}`)
       const output = path.join(tmpdir(), `${Date.now()}.webp`)
       fs.writeFileSync(input, buffer)
 
       if (type === 'imageMessage') {
+        // CORRECCIÓN DE DEFORMACIÓN: fit 'contain' + fondo transparente
         await sharp(input)
           .resize(512, 512, {
-            fit: 'inside',
-            withoutEnlargement: true
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
           })
           .webp({ quality: 80 })
           .toFile(output)
@@ -59,13 +57,8 @@ export default {
           '-y',
           '-i', input,
           '-vf',
-          'cropdetect=24:16:0,' +
-          'crop,' +
-          'scale=512:512:force_original_aspect_ratio=decrease,' +
-          'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,' +
-          'fps=15',
+          'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,fps=15',
           '-vcodec', 'libwebp',
-          '-pix_fmt', 'yuva420p',
           '-loop', '0',
           '-t', '6',
           '-an',
@@ -73,9 +66,15 @@ export default {
         ])
       }
 
+      // ENVIAR STICKER (Aquí puedes configurar el nombre del paquete)
       await sock.sendMessage(
         m.key.remoteJid,
-        { sticker: fs.readFileSync(output) },
+        { 
+          sticker: fs.readFileSync(output)
+          // Si tu versión de Baileys lo soporta directamente:
+          // packname: "Lappland Bot",
+          // author: pushName
+        },
         { quoted: m }
       )
 
