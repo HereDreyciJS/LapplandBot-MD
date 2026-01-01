@@ -3,10 +3,11 @@ export default {
   description: 'Activa/desactiva modo solo socket en el grupo',
   execute: async ({ sock, m, args, isOwner, isGroup }) => {
     const groupJid = m.key.remoteJid
-    
     if (!isGroup) return
 
-    if (!isOwner) {
+    // Permitir si es Owner O si el mensaje es del propio bot (isBot)
+    const isBot = m.key.fromMe
+    if (!isOwner && !isBot) {
       return sock.sendMessage(
         groupJid,
         { text: '⛔ Solo el dueño del bot puede usar este comando' },
