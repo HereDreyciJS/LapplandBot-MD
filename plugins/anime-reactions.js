@@ -56,7 +56,7 @@ async function gifToMp4(gifBuffer) {
 
 export default {
   command: Object.keys(actionPhrases),
-  execute: async ({ sock, m, command, pushName }) => {
+  execute: async ({ sock, m, command }) => {
     try {
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
@@ -67,17 +67,27 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const senderJid = m.key.participant || m.key.remoteJid
-      const senderName = pushName || 'Alguien'
-
       const ctx = m.message?.extendedTextMessage?.contextInfo
       const targetJid = ctx?.participant
-      const targetName = ctx?.pushName
+
+      let senderName = 'Alguien'
+      let targetName = null
+
+      if (m.isGroup) {
+        const meta = await sock.groupMetadata(m.key.remoteJid)
+        const senderData = meta.participants.find(p => p.id === senderJid)
+        senderName = senderData?.notify || senderData?.verifiedName || senderName
+
+        if (targetJid && targetJid !== senderJid) {
+          const targetData = meta.participants.find(p => p.id === targetJid)
+          targetName = targetData?.notify || targetData?.verifiedName || null
+        }
+      }
 
       let caption
 
-      if (targetJid && targetJid !== senderJid) {
-        const name = targetName || targetJid.split('@')[0]
-        caption = `*${senderName}* ${actionPhrases[command]} *${name}*`
+      if (targetName) {
+        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
       } else {
         caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
       }
