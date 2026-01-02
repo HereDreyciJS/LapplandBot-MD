@@ -74,15 +74,12 @@ export default {
       let targetName = 'sí mismo/a'
 
       if (targetJid) {
-        const contact = await sock.getName(targetJid)
-        targetName = contact && !targetJid.includes(contact) 
-          ? contact 
-          : `@${targetJid.split('@')[0]}`
+        targetName = `@${targetJid.split('@')[0]}`
       }
 
       const phrase = actionPhrases[command]
       const caption = targetJid 
-        ? `*${senderName}* ${phrase} *${targetName.replace('@', '')}*`
+        ? `*${senderName}* ${phrase} ${targetName}`
         : `*${senderName}* se ${phrase.split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
