@@ -57,19 +57,25 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const sender = m.key.participant || m.key.remoteJid
-      const quoted = m.message?.extendedTextMessage?.contextInfo
-      const targetJid = quoted?.mentionedJid?.[0] || quoted?.participant
+      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
       
       const senderName = pushName || 'Alguien'
       let targetName = ''
 
-      if (targetJid) {
-        const fullMsg = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
-        const pushNameQuoted = m.message?.extendedTextMessage?.contextInfo?.pushName
+      if (targetJid && targetJid !== sender) {
+        // 1. Intentar sacar el nombre directamente de la propiedad 'pushName' que Baileys inyecta en el objeto citado
+        const quotedPushName = ctx?.pushName 
         
-        if (pushNameQuoted) {
-          targetName = pushNameQuoted
+        // 2. Intentar buscar en la caché de mensajes del socket si está disponible
+        const contact = sock.contacts ? sock.contacts[targetJid] : null
+        
+        if (quotedPushName) {
+          targetName = quotedPushName
+        } else if (contact && (contact.name || contact.notify)) {
+          targetName = contact.name || contact.notify
         } else if (m.isGroup) {
+          // 3. Forzar obtención de metadatos si no tenemos el nombre
           const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
           const participant = groupMetadata.participants.find(p => p.id === targetJid)
           targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
