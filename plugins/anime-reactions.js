@@ -12,7 +12,20 @@ const actionPhrases = {
   hug: 'abrazó a',
   kiss: 'besó a',
   pat: 'acarició a',
-  slap: 'le dio una cachetada a'
+  slap: 'le dio una cachetada a',
+  kill: 'asesinó a',
+  punch: 'le dio un puñetazo a',
+  cuddle: 'se acurrucó con',
+  bite: 'mordió a',
+  lick: 'lamió a',
+  highfive: 'chocó los cinco con',
+  poke: 'le dio un toque a',
+  sleep: 'se durmió con',
+  blush: 'se sonrojó frente a',
+  smile: 'le sonrió a',
+  wave: 'le saludó a',
+  cry: 'le lloró a',
+  dance: 'bailó con'
 }
 
 async function gifToMp4(gifBuffer) {
@@ -42,9 +55,8 @@ async function gifToMp4(gifBuffer) {
 }
 
 export default {
-  command: ['hug', 'kiss', 'pat', 'slap'],
-  description: 'Reacciones anime con GIFs',
-  execute: async ({ sock, m, command }) => {
+  command: Object.keys(actionPhrases),
+  execute: async ({ sock, m, command, pushName }) => {
     try {
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
       const json = await res.json()
@@ -56,14 +68,22 @@ export default {
 
       const sender = m.key.participant || m.key.remoteJid
       const ctx = m.message?.extendedTextMessage?.contextInfo
-      const mentioned = ctx?.mentionedJid?.[0]
-      const quoted = ctx?.participant
-      const target = mentioned || quoted
+      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
 
-      const phrase = actionPhrases[command] || 'interactuó con'
-      const caption = target
-        ? `@${sender.split('@')[0]} ${phrase} @${target.split('@')[0]}`
-        : `@${sender.split('@')[0]} se ${phrase.split(' ')[0]} a sí mismo/a`
+      const senderName = pushName || 'Alguien'
+      let targetName = 'sí mismo/a'
+
+      if (targetJid) {
+        const contact = await sock.getName(targetJid)
+        targetName = contact && !targetJid.includes(contact) 
+          ? contact 
+          : `@${targetJid.split('@')[0]}`
+      }
+
+      const phrase = actionPhrases[command]
+      const caption = targetJid 
+        ? `*${senderName}* ${phrase} *${targetName.replace('@', '')}*`
+        : `*${senderName}* se ${phrase.split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
         m.key.remoteJid,
@@ -72,12 +92,12 @@ export default {
           mimetype: 'video/mp4',
           gifPlayback: true,
           caption,
-          mentions: [sender, target].filter(Boolean)
+          mentions: [sender, targetJid].filter(Boolean)
         },
         { quoted: m }
       )
     } catch (e) {
-      console.error('Error en el plugin:', e)
+      console.error(e)
     }
   }
 }
