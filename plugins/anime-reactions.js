@@ -46,7 +46,7 @@ async function gifToMp4(gifBuffer) {
 
 const selfPhrases = {
   hug: 'abraza su almohada fuertemente',
-  kiss: 'practica a darse besos con el espejo',
+  kiss: 'practica a darse besitos con el espejo',
   pat: 'se acarició a sí mismo/a',
   slap: 'se dio una cachetada a sí mismo/a',
   kill: 'se suicidó',
