@@ -13,7 +13,7 @@ const actionPhrases = {
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a',
-  kill: 'mató a',
+  kill: 'asesinó a',
   punch: 'le dio un puñetazo a',
   cuddle: 'se acurrucó con',
   bite: 'mordió a',
@@ -57,20 +57,28 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const sender = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo
-      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
+      const quoted = m.message?.extendedTextMessage?.contextInfo
+      const targetJid = quoted?.mentionedJid?.[0] || quoted?.participant
       
       const senderName = pushName || 'Alguien'
       let targetName = ''
 
       if (targetJid && targetJid !== sender) {
-        const contact = sock.contacts ? sock.contacts[targetJid] : null
-        const metadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
-        const participant = metadata?.participants.find(p => p.id === targetJid)
+        const pushNameQuoted = m.message?.extendedTextMessage?.contextInfo?.pushName
         
-        targetName = contact?.name || contact?.notify || participant?.notify || participant?.verifiedName || ctx?.pushName || targetJid.split('@')[0]
+        if (pushNameQuoted) {
+          targetName = pushNameQuoted
+        } else if (m.isGroup) {
+          const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
+          const participant = groupMetadata.participants.find(p => p.id === targetJid)
+          targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
+        } else {
+          targetName = targetJid.split('@')[0]
+        }
 
-        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName.replace(/@/g, '')}*`
+        targetName = targetName.split('@')[0]
+
+        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
 
         await sock.sendMessage(
           m.key.remoteJid,
