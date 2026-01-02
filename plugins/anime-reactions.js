@@ -66,13 +66,21 @@ export default {
       const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
       const mp4Buffer = await gifToMp4(gifBuffer)
 
+      const senderJid = m.key.participant || m.key.remoteJid
       const senderName = pushName || 'Alguien'
-      const quoted = m.message?.extendedTextMessage?.contextInfo
-      const targetName = quoted?.pushName
 
-      const caption = targetName
-        ? `*${senderName}* ${actionPhrases[command]} *${targetName}*`
-        : `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const targetJid = ctx?.participant
+      const targetName = ctx?.pushName
+
+      let caption
+
+      if (targetJid && targetJid !== senderJid) {
+        const name = targetName || targetJid.split('@')[0]
+        caption = `*${senderName}* ${actionPhrases[command]} *${name}*`
+      } else {
+        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+      }
 
       await sock.sendMessage(
         m.key.remoteJid,
