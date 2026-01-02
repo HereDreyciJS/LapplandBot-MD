@@ -28,11 +28,11 @@ const actionPhrases = {
   dance: 'bailó con'
 }
 
-async function gifToMp4(gifBuffer) {
+async function gifToMp4(buffer) {
   const id = crypto.randomBytes(8).toString('hex')
-  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
-  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
-  await writeFile(inPath, gifBuffer)
+  const inPath = path.join(os.tmpdir(), `${id}.gif`)
+  const outPath = path.join(os.tmpdir(), `${id}.mp4`)
+  await writeFile(inPath, buffer)
   await new Promise((resolve, reject) => {
     ffmpeg(inPath)
       .outputOptions(['-movflags faststart', '-pix_fmt yuv420p', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'])
@@ -56,23 +56,32 @@ export default {
       const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
       const mp4Buffer = await gifToMp4(gifBuffer)
 
-      const sender = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
-      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
-
+      const senderJid = m.key.participant || m.key.remoteJid
       const senderName = pushName || 'Alguien'
-      
-      let caption
-      if (targetJid && targetJid !== sender) {
-        const mentionId = targetJid.split('@')[0]
-        const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
-        const participant = groupMetadata?.participants.find(p => p.id === targetJid)
-        const targetName = participant?.notify || participant?.verifiedName || mentionId
+      const isGroup = m.isGroup
 
+      let targetJid = null
+      let targetName = null
+
+      if (isGroup && m.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+        targetJid = m.message.extendedTextMessage.contextInfo.participant
+        const meta = await sock.groupMetadata(m.key.remoteJid)
+        const participant = meta.participants.find(p => p.id === targetJid)
+        targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
+      }
+
+      if (!targetJid && m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
+        targetJid = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+        const meta = isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
+        const participant = meta?.participants.find(p => p.id === targetJid)
+        targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
+      }
+
+      let caption = ''
+      if (targetJid && targetJid !== senderJid) {
         caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
       } else {
-        // Frase más natural si no hay target
-        switch(command) {
+        switch (command) {
           case 'sleep':
             caption = `*${senderName}* se quedó dormido/a plácidamente.`
             break
@@ -80,7 +89,7 @@ export default {
             caption = `*${senderName}* practicó sus puñetazos al aire.`
             break
           default:
-            caption = `*${senderName}* hizo la acción solo/a.`
+            caption = `*${senderName}* se hizo la acción a sí mismo/a.`
             break
         }
       }
@@ -91,8 +100,8 @@ export default {
           video: mp4Buffer,
           mimetype: 'video/mp4',
           gifPlayback: true,
-          caption: caption,
-          mentions: [sender, targetJid].filter(Boolean)
+          caption,
+          mentions: [senderJid, targetJid].filter(Boolean)
         },
         { quoted: m }
       )
