@@ -44,6 +44,26 @@ async function gifToMp4(gifBuffer) {
   return mp4Buffer
 }
 
+const selfPhrases = {
+  hug: 'abraza su almohada fuertemente',
+  kiss: 'practica a darse besos con el espejo',
+  pat: 'se acarició a sí mismo/a',
+  slap: 'se dio una cachetada a sí mismo/a',
+  kill: 'se suicidó',
+  punch: 'practicó sus puñetazos al aire',
+  cuddle: 'se acurrucó solo/a',
+  bite: 'se mordió a sí mismo/a',
+  lick: 'se lamió a sí mismo/a',
+  highfive: 'chocó los cinco consigo mismo/a',
+  poke: 'se da un toquecitos a sí mismo/a',
+  sleep: 'se acomodó y se quedó dormido/a plácidamente',
+  blush: 'se sonrojó',
+  smile: 'sonríe alegremente',
+  wave: 'saluda a todos',
+  cry: 'llora desconsoladamente',
+  dance: 'da pasos de baile'
+}
+
 export default {
   command: Object.keys(actionPhrases),
   execute: async ({ sock, m, command, pushName }) => {
@@ -59,30 +79,21 @@ export default {
       const sender = m.key.participant || m.key.remoteJid
       const senderName = pushName || 'Alguien'
 
-      let targetJid = null
       const ctx = m.message?.extendedTextMessage?.contextInfo
+      let targetJid = null
 
-      if (ctx?.mentionedJid?.length) {
-        targetJid = ctx.mentionedJid[0]
-      } else if (ctx?.quotedMessage) {
-        targetJid = ctx.participant
-      }
+      if (ctx?.mentionedJid?.length) targetJid = ctx.mentionedJid[0]
+      else if (ctx?.quotedMessage) targetJid = ctx.participant
 
       let caption = ''
+      const mentionsArray = [sender]
+
       if (targetJid && targetJid !== sender) {
         caption = `*${senderName}* ${actionPhrases[command]} @${targetJid.split('@')[0]}`
+        mentionsArray.push(targetJid)
       } else {
-        if (command === 'sleep') caption = `*${senderName}* se acomodó y se quedó dormido/a plácidamente.`
-        else if (command === 'punch') caption = `*${senderName}* practicó sus puñetazos al aire.`
-        else if (command === 'hug') caption = `*${senderName}* se dio un abrazo a sí mismo/a.`
-        else if (command === 'kiss') caption = `*${senderName}* se dio un besito a sí mismo/a.`
-        else if (command === 'pat') caption = `*${senderName}* se acarició a sí mismo/a.`
-        else if (command === 'slap') caption = `*${senderName}* se dio una cachetada a sí mismo/a.`
-        else caption = `*${senderName}* realizó la acción a sí mismo/a.`
+        caption = `*${senderName}* ${selfPhrases[command] || 'realizó la acción a sí mismo/a'}`
       }
-
-      const mentionsArray = [sender]
-      if (targetJid && targetJid !== sender) mentionsArray.push(targetJid)
 
       await sock.sendMessage(
         m.key.remoteJid,
