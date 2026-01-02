@@ -12,30 +12,27 @@ const actionPhrases = {
   hug: 'abrazó a',
   kiss: 'besó a',
   pat: 'acarició a',
-  slap: 'le dio una cachetada a',
-  kill: 'asesinó a',
-  punch: 'le dio un puñetazo a',
-  cuddle: 'se acurrucó con',
-  bite: 'mordió a',
-  lick: 'lamió a',
-  highfive: 'chocó los cinco con',
-  poke: 'le dio un toque a',
-  sleep: 'se durmió con',
-  blush: 'se sonrojó frente a',
-  smile: 'le sonrió a',
-  wave: 'le saludó a',
-  cry: 'le lloró a',
-  dance: 'bailó con'
+  slap: 'le dio una cachetada a'
+}
+
+function getContextInfo(msg) {
+  return (
+    msg.message?.extendedTextMessage?.contextInfo ||
+    msg.message?.imageMessage?.contextInfo ||
+    msg.message?.videoMessage?.contextInfo ||
+    msg.message?.stickerMessage?.contextInfo ||
+    null
+  )
 }
 
 async function gifToMp4(gifBuffer) {
   const id = crypto.randomBytes(8).toString('hex')
-  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
-  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
+  const inPath = path.join(os.tmpdir(), `${id}.gif`)
+  const outPath = path.join(os.tmpdir(), `${id}.mp4`)
 
   await writeFile(inPath, gifBuffer)
 
-  await new Promise((resolve, reject) => {
+  await new Promise((res, rej) => {
     ffmpeg(inPath)
       .outputOptions([
         '-movflags faststart',
@@ -44,14 +41,14 @@ async function gifToMp4(gifBuffer) {
       ])
       .noAudio()
       .save(outPath)
-      .on('end', resolve)
-      .on('error', reject)
+      .on('end', res)
+      .on('error', rej)
   })
 
-  const mp4Buffer = await readFile(outPath)
+  const mp4 = await readFile(outPath)
   await rm(inPath).catch(() => {})
   await rm(outPath).catch(() => {})
-  return mp4Buffer
+  return mp4
 }
 
 export default {
@@ -62,14 +59,13 @@ export default {
       const json = await res.json()
       if (!json?.url) return
 
-      const gifRes = await fetch(json.url)
-      const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
-      const mp4Buffer = await gifToMp4(gifBuffer)
+      const gif = await fetch(json.url)
+      const gifBuffer = Buffer.from(await gif.arrayBuffer())
+      const mp4 = await gifToMp4(gifBuffer)
 
       const senderJid = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const ctx = getContextInfo(m)
 
-      // 🔴 FORMA CORRECTA
       const targetJid =
         ctx?.participant ||
         ctx?.mentionedJid?.[0] ||
@@ -81,12 +77,14 @@ export default {
       if (m.isGroup) {
         const meta = await sock.groupMetadata(m.key.remoteJid)
 
-        const senderData = meta.participants.find(p => p.id === senderJid)
-        senderName = senderData?.notify || senderData?.verifiedName || senderName
+        senderName =
+          meta.participants.find(p => p.id === senderJid)?.notify ||
+          senderJid.split('@')[0]
 
         if (targetJid && targetJid !== senderJid) {
-          const targetData = meta.participants.find(p => p.id === targetJid)
-          targetName = targetData?.notify || targetData?.verifiedName || null
+          targetName =
+            meta.participants.find(p => p.id === targetJid)?.notify ||
+            targetJid.split('@')[0]
         }
       }
 
@@ -97,7 +95,7 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          video: mp4Buffer,
+          video: mp4,
           mimetype: 'video/mp4',
           gifPlayback: true,
           caption
