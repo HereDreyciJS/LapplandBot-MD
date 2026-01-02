@@ -35,8 +35,15 @@ async function gifToMp4(gifBuffer) {
   await writeFile(inPath, gifBuffer)
   await new Promise((resolve, reject) => {
     ffmpeg(inPath)
-      .outputOptions(['-movflags faststart', '-pix_fmt yuv420p', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'])
-      .noAudio().save(outPath).on('end', resolve).on('error', reject)
+      .outputOptions([
+        '-movflags faststart',
+        '-pix_fmt yuv420p',
+        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
+      ])
+      .noAudio()
+      .save(outPath)
+      .on('end', resolve)
+      .on('error', reject)
   })
   const mp4Buffer = await readFile(outPath)
   await rm(inPath).catch(() => {})
@@ -59,47 +66,47 @@ export default {
       const sender = m.key.participant || m.key.remoteJid
       const quoted = m.message?.extendedTextMessage?.contextInfo
       const targetJid = quoted?.mentionedJid?.[0] || quoted?.participant
-      
+
       const senderName = pushName || 'Alguien'
       let targetName = ''
 
       if (targetJid && targetJid !== sender) {
-        const pushNameQuoted = m.message?.extendedTextMessage?.contextInfo?.pushName
-        
+        const pushNameQuoted = quoted?.pushName
+
         if (pushNameQuoted) {
           targetName = pushNameQuoted
         } else if (m.isGroup) {
-          const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
-          const participant = groupMetadata.participants.find(p => p.id === targetJid)
-          targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
+          const meta = await sock.groupMetadata(m.key.remoteJid)
+          const participant = meta.participants.find(p => p.id === targetJid)
+          targetName =
+            participant?.notify ||
+            participant?.verifiedName ||
+            targetJid.split('@')[0]
         } else {
           targetName = targetJid.split('@')[0]
         }
 
         targetName = targetName.split('@')[0]
 
-        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
-
         await sock.sendMessage(
           m.key.remoteJid,
           {
             video: mp4Buffer,
             mimetype: 'video/mp4',
             gifPlayback: true,
-            caption: caption,
-            mentions: [sender, targetJid]
+            caption: `*${senderName}* ${actionPhrases[command]} *${targetName}*`,
+            mentions: [sender] 
           },
           { quoted: m }
         )
       } else {
-        const caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
         await sock.sendMessage(
           m.key.remoteJid,
           {
             video: mp4Buffer,
             mimetype: 'video/mp4',
             gifPlayback: true,
-            caption: caption,
+            caption: `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`,
             mentions: [sender]
           },
           { quoted: m }
