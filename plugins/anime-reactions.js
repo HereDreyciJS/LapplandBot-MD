@@ -68,13 +68,19 @@ export default {
 
       const senderJid = m.key.participant || m.key.remoteJid
       const ctx = m.message?.extendedTextMessage?.contextInfo
-      const targetJid = ctx?.participant
+
+      // 🔴 FORMA CORRECTA
+      const targetJid =
+        ctx?.participant ||
+        ctx?.mentionedJid?.[0] ||
+        null
 
       let senderName = 'Alguien'
       let targetName = null
 
       if (m.isGroup) {
         const meta = await sock.groupMetadata(m.key.remoteJid)
+
         const senderData = meta.participants.find(p => p.id === senderJid)
         senderName = senderData?.notify || senderData?.verifiedName || senderName
 
@@ -84,13 +90,9 @@ export default {
         }
       }
 
-      let caption
-
-      if (targetName) {
-        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
-      } else {
-        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
-      }
+      const caption = targetName
+        ? `*${senderName}* ${actionPhrases[command]} *${targetName}*`
+        : `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
         m.key.remoteJid,
