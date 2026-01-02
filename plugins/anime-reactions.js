@@ -13,7 +13,7 @@ const actionPhrases = {
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a',
-  kill: 'asesinó a',
+  kill: 'mató a',
   punch: 'le dio un puñetazo a',
   cuddle: 'se acurrucó con',
   bite: 'mordió a',
