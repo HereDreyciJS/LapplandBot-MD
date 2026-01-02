@@ -64,12 +64,17 @@ export default {
       
       let caption
       if (targetJid) {
-        const mentionId = targetJid.split('@')[0]
-        const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
-        const participant = groupMetadata?.participants.find(p => p.id === targetJid)
-        const targetName = participant?.notify || participant?.verifiedName || mentionId
+        let targetName = 'alguien'
+        
+        if (m.isGroup) {
+          const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
+          const participant = groupMetadata.participants.find(p => p.id === targetJid)
+          targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
+        } else {
+          targetName = targetJid.split('@')[0]
+        }
 
-        caption = `*${senderName}* ${actionPhrases[command]} @${mentionId}`
+        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
       } else {
         caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
       }
