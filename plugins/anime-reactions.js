@@ -57,28 +57,22 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const sender = m.key.participant || m.key.remoteJid
-      const msg = m.message?.extendedTextMessage || m.message?.videoMessage || m.message?.imageMessage
-      const ctx = msg?.contextInfo
-      
+      const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
       const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
       
       const senderName = pushName || 'Alguien'
-      let targetName = 'sí mismo/a'
-
+      
+      let caption
       if (targetJid) {
-        const quotedName = ctx?.pushName || m.msg?.contextInfo?.pushName
-        
-        if (quotedName) {
-          targetName = quotedName
-        } else {
-          targetName = `@${targetJid.split('@')[0]}`
-        }
-      }
+        const mentionId = targetJid.split('@')[0]
+        const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
+        const participant = groupMetadata?.participants.find(p => p.id === targetJid)
+        const targetName = participant?.notify || participant?.verifiedName || mentionId
 
-      const phrase = actionPhrases[command]
-      const caption = targetJid 
-        ? `*${senderName}* ${phrase} *${targetName.replace('@', '')}*`
-        : `*${senderName}* se ${phrase.split(' ')[0]} a sí mismo/a`
+        caption = `*${senderName}* ${actionPhrases[command]} @${mentionId}`
+      } else {
+        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+      }
 
       await sock.sendMessage(
         m.key.remoteJid,
@@ -86,7 +80,7 @@ export default {
           video: mp4Buffer,
           mimetype: 'video/mp4',
           gifPlayback: true,
-          caption,
+          caption: caption,
           mentions: [sender, targetJid].filter(Boolean)
         },
         { quoted: m }
