@@ -13,8 +13,8 @@ const actionPhrases = {
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a',
-  kill: 'mató a',
-  punch: 'le golpeó a',
+  kill: 'asesinó a',
+  punch: 'le dio un puñetazo a',
   cuddle: 'se acurrucó con',
   bite: 'mordió a',
   lick: 'lamió a',
@@ -23,8 +23,8 @@ const actionPhrases = {
   sleep: 'se durmió con',
   blush: 'se sonrojó frente a',
   smile: 'le sonrió a',
-  wave: 'le saluda a',
-  cry: 'le llora a',
+  wave: 'le saludó a',
+  cry: 'le lloró a',
   dance: 'bailó con'
 }
 
@@ -57,23 +57,27 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const sender = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo
+      const msg = m.message?.extendedTextMessage || m.message?.videoMessage || m.message?.imageMessage
+      const ctx = msg?.contextInfo
+      
       const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
       
       const senderName = pushName || 'Alguien'
       let targetName = 'sí mismo/a'
 
       if (targetJid) {
-        const quotedMsg = m.message?.extendedTextMessage?.contextInfo
-        const quotedPushName = quotedMsg?.pushName
-        targetName = (targetJid === quotedMsg?.participant && quotedPushName) 
-          ? quotedPushName 
-          : `@${targetJid.split('@')[0]}`
+        const quotedName = ctx?.pushName || m.msg?.contextInfo?.pushName
+        
+        if (quotedName) {
+          targetName = quotedName
+        } else {
+          targetName = `@${targetJid.split('@')[0]}`
+        }
       }
 
       const phrase = actionPhrases[command]
       const caption = targetJid 
-        ? `*${senderName}* ${phrase} ${targetName}`
+        ? `*${senderName}* ${phrase} *${targetName.replace('@', '')}*`
         : `*${senderName}* se ${phrase.split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
