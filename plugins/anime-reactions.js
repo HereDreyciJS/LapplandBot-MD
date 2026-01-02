@@ -13,8 +13,8 @@ const actionPhrases = {
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a',
-  kill: 'asesinó a',
-  punch: 'le dio un puñetazo a',
+  kill: 'mató a',
+  punch: 'le golpeó a',
   cuddle: 'se acurrucó con',
   bite: 'mordió a',
   lick: 'lamió a',
@@ -23,8 +23,8 @@ const actionPhrases = {
   sleep: 'se durmió con',
   blush: 'se sonrojó frente a',
   smile: 'le sonrió a',
-  wave: 'le saludó a',
-  cry: 'le lloró a',
+  wave: 'le saluda a',
+  cry: 'le llora a',
   dance: 'bailó con'
 }
 
@@ -32,22 +32,12 @@ async function gifToMp4(gifBuffer) {
   const id = crypto.randomBytes(8).toString('hex')
   const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
   const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
-
   await writeFile(inPath, gifBuffer)
-
   await new Promise((resolve, reject) => {
     ffmpeg(inPath)
-      .outputOptions([
-        '-movflags faststart',
-        '-pix_fmt yuv420p',
-        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
-      ])
-      .noAudio()
-      .save(outPath)
-      .on('end', resolve)
-      .on('error', reject)
+      .outputOptions(['-movflags faststart', '-pix_fmt yuv420p', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'])
+      .noAudio().save(outPath).on('end', resolve).on('error', reject)
   })
-
   const mp4Buffer = await readFile(outPath)
   await rm(inPath).catch(() => {})
   await rm(outPath).catch(() => {})
@@ -69,12 +59,16 @@ export default {
       const sender = m.key.participant || m.key.remoteJid
       const ctx = m.message?.extendedTextMessage?.contextInfo
       const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
-
+      
       const senderName = pushName || 'Alguien'
       let targetName = 'sí mismo/a'
 
       if (targetJid) {
-        targetName = `@${targetJid.split('@')[0]}`
+        const quotedMsg = m.message?.extendedTextMessage?.contextInfo
+        const quotedPushName = quotedMsg?.pushName
+        targetName = (targetJid === quotedMsg?.participant && quotedPushName) 
+          ? quotedPushName 
+          : `@${targetJid.split('@')[0]}`
       }
 
       const phrase = actionPhrases[command]
