@@ -8,96 +8,97 @@ import crypto from 'crypto'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-const actionPhrases = {
+const actions = {
   hug: 'abrazó a',
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a'
 }
 
-function getContextInfo(msg) {
-  return (
+function getQuotedParticipant(msg) {
+  const ctx =
     msg.message?.extendedTextMessage?.contextInfo ||
     msg.message?.imageMessage?.contextInfo ||
     msg.message?.videoMessage?.contextInfo ||
-    msg.message?.stickerMessage?.contextInfo ||
+    msg.message?.stickerMessage?.contextInfo
+
+  if (!ctx) return null
+
+  return (
+    ctx.participant ||
+    ctx.quotedMessage?.key?.participant ||
     null
   )
 }
 
-async function gifToMp4(gifBuffer) {
-  const id = crypto.randomBytes(8).toString('hex')
-  const inPath = path.join(os.tmpdir(), `${id}.gif`)
-  const outPath = path.join(os.tmpdir(), `${id}.mp4`)
+async function gifToMp4(buffer) {
+  const id = crypto.randomBytes(6).toString('hex')
+  const gifPath = path.join(os.tmpdir(), `${id}.gif`)
+  const mp4Path = path.join(os.tmpdir(), `${id}.mp4`)
 
-  await writeFile(inPath, gifBuffer)
+  await writeFile(gifPath, buffer)
 
   await new Promise((res, rej) => {
-    ffmpeg(inPath)
+    ffmpeg(gifPath)
       .outputOptions([
         '-movflags faststart',
         '-pix_fmt yuv420p',
         '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
       ])
       .noAudio()
-      .save(outPath)
+      .save(mp4Path)
       .on('end', res)
       .on('error', rej)
   })
 
-  const mp4 = await readFile(outPath)
-  await rm(inPath).catch(() => {})
-  await rm(outPath).catch(() => {})
-  return mp4
+  const out = await readFile(mp4Path)
+  await rm(gifPath).catch(() => {})
+  await rm(mp4Path).catch(() => {})
+  return out
 }
 
 export default {
-  command: Object.keys(actionPhrases),
+  command: Object.keys(actions),
   execute: async ({ sock, m, command }) => {
     try {
-      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
-      const json = await res.json()
-      if (!json?.url) return
+      const api = await fetch(`https://api.waifu.pics/sfw/${command}`)
+      const { url } = await api.json()
+      if (!url) return
 
-      const gif = await fetch(json.url)
+      const gif = await fetch(url)
       const gifBuffer = Buffer.from(await gif.arrayBuffer())
       const mp4 = await gifToMp4(gifBuffer)
 
-      const senderJid = m.key.participant || m.key.remoteJid
-      const ctx = getContextInfo(m)
+      const sender = m.key.participant || m.key.remoteJid
+      const target = getQuotedParticipant(m)
 
-      const targetJid =
-        ctx?.participant ||
-        ctx?.mentionedJid?.[0] ||
-        null
-
-      let senderName = 'Alguien'
+      let senderName = sender.split('@')[0]
       let targetName = null
 
       if (m.isGroup) {
         const meta = await sock.groupMetadata(m.key.remoteJid)
 
         senderName =
-          meta.participants.find(p => p.id === senderJid)?.notify ||
-          senderJid.split('@')[0]
+          meta.participants.find(p => p.id === sender)?.notify ||
+          senderName
 
-        if (targetJid && targetJid !== senderJid) {
+        if (target && target !== sender) {
           targetName =
-            meta.participants.find(p => p.id === targetJid)?.notify ||
-            targetJid.split('@')[0]
+            meta.participants.find(p => p.id === target)?.notify ||
+            target.split('@')[0]
         }
       }
 
       const caption = targetName
-        ? `*${senderName}* ${actionPhrases[command]} *${targetName}*`
-        : `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+        ? `*${senderName}* ${actions[command]} *${targetName}*`
+        : `*${senderName}* se ${actions[command].split(' ')[0]} a sí mismo/a`
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
           video: mp4,
-          mimetype: 'video/mp4',
           gifPlayback: true,
+          mimetype: 'video/mp4',
           caption
         },
         { quoted: m }
