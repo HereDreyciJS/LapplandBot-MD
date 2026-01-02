@@ -64,13 +64,20 @@ export default {
       
       let caption
       if (targetJid) {
-        let targetName = 'alguien'
+        let targetName = ''
         
-        if (m.isGroup) {
+        // Intento 1: Sacar el nombre del pushName del mensaje citado directamente
+        const quotedPushName = ctx?.pushName
+        
+        if (quotedPushName) {
+          targetName = quotedPushName
+        } else if (m.isGroup) {
+          // Intento 2: Buscar en la lista de participantes del grupo
           const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
           const participant = groupMetadata.participants.find(p => p.id === targetJid)
           targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
         } else {
+          // Intento 3: Solo el número limpio
           targetName = targetJid.split('@')[0]
         }
 
