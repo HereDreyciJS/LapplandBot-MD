@@ -20,7 +20,7 @@ const actionPhrases = {
   lick: 'lamió a',
   highfive: 'chocó los cinco con',
   poke: 'le dio un toque a',
-  sleep: 'se quedó dormido/a junto a',
+  sleep: 'se durmió con',
   blush: 'se sonrojó frente a',
   smile: 'le sonrió a',
   wave: 'le saludó a',
@@ -59,19 +59,54 @@ export default {
       const sender = m.key.participant || m.key.remoteJid
       const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
       const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
-      
+
       const senderName = pushName || 'Alguien'
-      
-      let caption = ''
-      if (targetJid && targetJid !== sender) {
-        caption = `*${senderName}* ${actionPhrases[command]} *${targetJid.split('@')[0]}*`
+
+      let caption
+      if (targetJid) {
+        const mentionId = targetJid.split('@')[0]
+        const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
+        const participant = groupMetadata?.participants.find(p => p.id === targetJid)
+        const targetName = participant?.notify || participant?.verifiedName || mentionId
+
+        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
       } else {
         if (command === 'sleep') {
-          caption = `*${senderName}* se quedó dormido/a plácidamente.`
+          caption = `*${senderName}* se acomodó y se quedó dormido/a tranquilamente.`
         } else if (command === 'punch') {
-          caption = `*${senderName}* practicó sus puñetazos al aire.`
+          caption = `*${senderName}* practicó unos puñetazos al aire.`
+        } else if (command === 'hug') {
+          caption = `*${senderName}* se dio un abrazo a sí mismo/a.`
+        } else if (command === 'kiss') {
+          caption = `*${senderName}* se dio un besito a sí mismo/a.`
+        } else if (command === 'pat') {
+          caption = `*${senderName}* se acarició a sí mismo/a.`
+        } else if (command === 'slap') {
+          caption = `*${senderName}* se dio una cachetada a sí mismo/a.`
+        } else if (command === 'kill') {
+          caption = `*${senderName}* decidió pelear consigo mismo/a.`
+        } else if (command === 'cuddle') {
+          caption = `*${senderName}* se acurrucó solo/a.`
+        } else if (command === 'bite') {
+          caption = `*${senderName}* se mordió a sí mismo/a.`
+        } else if (command === 'lick') {
+          caption = `*${senderName}* se lamió a sí mismo/a.`
+        } else if (command === 'highfive') {
+          caption = `*${senderName}* chocó los cinco consigo mismo/a.`
+        } else if (command === 'poke') {
+          caption = `*${senderName}* se dio un toque a sí mismo/a.`
+        } else if (command === 'blush') {
+          caption = `*${senderName}* se sonrojó solo/a.`
+        } else if (command === 'smile') {
+          caption = `*${senderName}* se sonrió a sí mismo/a.`
+        } else if (command === 'wave') {
+          caption = `*${senderName}* se saludó a sí mismo/a.`
+        } else if (command === 'cry') {
+          caption = `*${senderName}* lloró un poco a solas.`
+        } else if (command === 'dance') {
+          caption = `*${senderName}* bailó solo/a.`
         } else {
-          caption = `*${senderName}* realizó la acción consigo mismo/a.`
+          caption = `*${senderName}* realizó la acción a sí mismo/a.`
         }
       }
 
