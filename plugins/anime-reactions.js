@@ -61,19 +61,10 @@ export default {
 
       let targetJid = null
       let targetName = null
-
       const ctx = m.message?.extendedTextMessage?.contextInfo
 
       if (ctx?.mentionedJid?.length) {
         targetJid = ctx.mentionedJid[0]
-      } else if (ctx?.quotedMessage) {
-        targetJid = ctx.participant
-        if (ctx.quotedMessage.senderName) {
-          targetName = ctx.quotedMessage.senderName
-        }
-      }
-
-      if (!targetName && targetJid) {
         if (m.isGroup) {
           const meta = await sock.groupMetadata(m.key.remoteJid)
           const participant = meta.participants.find(p => p.id === targetJid)
@@ -81,6 +72,9 @@ export default {
         } else {
           targetName = targetJid.split('@')[0]
         }
+      } else if (ctx?.quotedMessage) {
+        targetJid = ctx.participant
+        targetName = ctx.quotedMessage.senderName || ctx.quotedMessage.pushName || targetJid.split('@')[0]
       }
 
       let caption = ''
@@ -92,6 +86,7 @@ export default {
         else if (command === 'hug') caption = `*${senderName}* se dio un abrazo a sí mismo/a.`
         else if (command === 'kiss') caption = `*${senderName}* se dio un besito a sí mismo/a.`
         else if (command === 'pat') caption = `*${senderName}* se acarició a sí mismo/a.`
+        else if (command === 'slap') caption = `*${senderName}* se dio una cachetada a sí mismo/a.`
         else caption = `*${senderName}* realizó la acción a sí mismo/a.`
       }
 
