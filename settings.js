@@ -8,7 +8,8 @@ const settings = {
     autoread: false,
 
     owners: [
-      '239754268389439'
+      '239754268389439',
+      '44981293158503'
     ],
 
     staffGroups: [
