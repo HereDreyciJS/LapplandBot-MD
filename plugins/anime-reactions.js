@@ -8,81 +8,80 @@ import crypto from 'crypto'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-const actions = {
+const actionPhrases = {
   hug: 'abrazó a',
   kiss: 'besó a',
   pat: 'acarició a',
-  slap: 'le dio una cachetada a'
+  slap: 'le dio una cachetada a',
+  kill: 'asesinó a',
+  punch: 'le dio un puñetazo a',
+  cuddle: 'se acurrucó con',
+  bite: 'mordió a',
+  lick: 'lamió a',
+  highfive: 'chocó los cinco con',
+  poke: 'le dio un toque a',
+  sleep: 'se durmió con',
+  blush: 'se sonrojó frente a',
+  smile: 'le sonrió a',
+  wave: 'le saludó a',
+  cry: 'le lloró a',
+  dance: 'bailó con'
 }
 
-async function gifToMp4(buffer) {
-  const id = crypto.randomBytes(6).toString('hex')
-  const gifPath = path.join(os.tmpdir(), `${id}.gif`)
-  const mp4Path = path.join(os.tmpdir(), `${id}.mp4`)
-  await writeFile(gifPath, buffer)
-  await new Promise((res, rej) => {
-    ffmpeg(gifPath)
-      .outputOptions([
-        '-movflags faststart',
-        '-pix_fmt yuv420p',
-        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
-      ])
-      .noAudio()
-      .save(mp4Path)
-      .on('end', res)
-      .on('error', rej)
+async function gifToMp4(gifBuffer) {
+  const id = crypto.randomBytes(8).toString('hex')
+  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
+  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
+  await writeFile(inPath, gifBuffer)
+  await new Promise((resolve, reject) => {
+    ffmpeg(inPath)
+      .outputOptions(['-movflags faststart', '-pix_fmt yuv420p', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'])
+      .noAudio().save(outPath).on('end', resolve).on('error', reject)
   })
-  const out = await readFile(mp4Path)
-  await rm(gifPath).catch(() => {})
-  await rm(mp4Path).catch(() => {})
-  return out
-}
-
-function getQuotedJid(m) {
-  return (
-    m.message?.extendedTextMessage?.contextInfo?.participant ||
-    m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.key?.participant ||
-    m.message?.imageMessage?.contextInfo?.participant ||
-    m.message?.imageMessage?.contextInfo?.quotedMessage?.key?.participant ||
-    m.message?.videoMessage?.contextInfo?.participant ||
-    m.message?.videoMessage?.contextInfo?.quotedMessage?.key?.participant ||
-    m.message?.stickerMessage?.contextInfo?.participant ||
-    m.message?.stickerMessage?.contextInfo?.quotedMessage?.key?.participant ||
-    null
-  )
+  const mp4Buffer = await readFile(outPath)
+  await rm(inPath).catch(() => {})
+  await rm(outPath).catch(() => {})
+  return mp4Buffer
 }
 
 export default {
-  command: Object.keys(actions),
-  execute: async ({ sock, m, command }) => {
+  command: Object.keys(actionPhrases),
+  execute: async ({ sock, m, command, pushName }) => {
     try {
       const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
-      const { url } = await res.json()
-      if (!url) return
-      const gifRes = await fetch(url)
+      const json = await res.json()
+      if (!json?.url) return
+
+      const gifRes = await fetch(json.url)
       const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
       const mp4Buffer = await gifToMp4(gifBuffer)
-      const senderJid = m.key.participant || m.key.remoteJid
-      const targetJid = getQuotedJid(m)
-      let senderName = senderJid.split('@')[0]
-      let targetName = null
-      if (m.isGroup) {
-        const meta = await sock.groupMetadata(m.key.remoteJid)
-        senderName = meta.participants.find(p => p.id === senderJid)?.notify || senderName
-        if (targetJid && targetJid !== senderJid) {
-          targetName = meta.participants.find(p => p.id === targetJid)?.notify || targetJid.split('@')[0]
-        }
+
+      const sender = m.key.participant || m.key.remoteJid
+      const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
+      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
+      
+      const senderName = pushName || 'Alguien'
+      
+      let caption
+      if (targetJid) {
+        const mentionId = targetJid.split('@')[0]
+        const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
+        const participant = groupMetadata?.participants.find(p => p.id === targetJid)
+        const targetName = participant?.notify || participant?.verifiedName || mentionId
+
+        caption = `*${senderName}* ${actionPhrases[command]} @${mentionId}`
+      } else {
+        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
       }
-      const caption = targetName
-        ? `*${senderName}* ${actions[command]} *${targetName}*`
-        : `*${senderName}* se ${actions[command].split(' ')[0]} a sí mismo/a`
+
       await sock.sendMessage(
         m.key.remoteJid,
         {
           video: mp4Buffer,
           mimetype: 'video/mp4',
           gifPlayback: true,
-          caption
+          caption: caption,
+          mentions: [sender, targetJid].filter(Boolean)
         },
         { quoted: m }
       )
