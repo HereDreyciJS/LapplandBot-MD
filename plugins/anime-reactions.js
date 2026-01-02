@@ -13,7 +13,7 @@ const actionPhrases = {
   kiss: 'besó a',
   pat: 'acarició a',
   slap: 'le dio una cachetada a',
-  kill: 'asesinó a',
+  kill: 'mató a',
   punch: 'le dio un puñetazo a',
   cuddle: 'se acurrucó con',
   bite: 'mordió a',
@@ -64,26 +64,13 @@ export default {
       let targetName = ''
 
       if (targetJid && targetJid !== sender) {
-        // 1. Intentar sacar el nombre directamente de la propiedad 'pushName' que Baileys inyecta en el objeto citado
-        const quotedPushName = ctx?.pushName 
-        
-        // 2. Intentar buscar en la caché de mensajes del socket si está disponible
         const contact = sock.contacts ? sock.contacts[targetJid] : null
+        const metadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
+        const participant = metadata?.participants.find(p => p.id === targetJid)
         
-        if (quotedPushName) {
-          targetName = quotedPushName
-        } else if (contact && (contact.name || contact.notify)) {
-          targetName = contact.name || contact.notify
-        } else if (m.isGroup) {
-          // 3. Forzar obtención de metadatos si no tenemos el nombre
-          const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
-          const participant = groupMetadata.participants.find(p => p.id === targetJid)
-          targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
-        } else {
-          targetName = targetJid.split('@')[0]
-        }
+        targetName = contact?.name || contact?.notify || participant?.notify || participant?.verifiedName || ctx?.pushName || targetJid.split('@')[0]
 
-        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
+        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName.replace(/@/g, '')}*`
 
         await sock.sendMessage(
           m.key.remoteJid,
