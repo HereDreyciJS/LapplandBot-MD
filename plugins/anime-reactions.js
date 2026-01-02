@@ -60,26 +60,17 @@ export default {
       const senderName = pushName || 'Alguien'
 
       let targetJid = null
-      let targetName = null
       const ctx = m.message?.extendedTextMessage?.contextInfo
 
       if (ctx?.mentionedJid?.length) {
         targetJid = ctx.mentionedJid[0]
-        if (m.isGroup) {
-          const meta = await sock.groupMetadata(m.key.remoteJid)
-          const participant = meta.participants.find(p => p.id === targetJid)
-          targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
-        } else {
-          targetName = targetJid.split('@')[0]
-        }
       } else if (ctx?.quotedMessage) {
         targetJid = ctx.participant
-        targetName = ctx.quotedMessage.senderName || ctx.quotedMessage.pushName || targetJid.split('@')[0]
       }
 
       let caption = ''
       if (targetJid && targetJid !== sender) {
-        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
+        caption = `*${senderName}* ${actionPhrases[command]} @${targetJid.split('@')[0]}`
       } else {
         if (command === 'sleep') caption = `*${senderName}* se acomodó y se quedó dormido/a plácidamente.`
         else if (command === 'punch') caption = `*${senderName}* practicó sus puñetazos al aire.`
