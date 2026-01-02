@@ -62,13 +62,18 @@ export default {
       let targetJid = null
       let targetName = null
 
-      if (m.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
-        targetJid = m.message.extendedTextMessage.contextInfo.participant
-      } else if (m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-        targetJid = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+      const ctx = m.message?.extendedTextMessage?.contextInfo
+
+      if (ctx?.mentionedJid?.length) {
+        targetJid = ctx.mentionedJid[0]
+      } else if (ctx?.quotedMessage) {
+        targetJid = ctx.participant
+        if (ctx.quotedMessage.senderName) {
+          targetName = ctx.quotedMessage.senderName
+        }
       }
 
-      if (targetJid) {
+      if (!targetName && targetJid) {
         if (m.isGroup) {
           const meta = await sock.groupMetadata(m.key.remoteJid)
           const participant = meta.participants.find(p => p.id === targetJid)
