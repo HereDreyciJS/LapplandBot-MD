@@ -57,46 +57,53 @@ export default {
       const mp4Buffer = await gifToMp4(gifBuffer)
 
       const sender = m.key.participant || m.key.remoteJid
-      const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
-      const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
+      const quoted = m.message?.extendedTextMessage?.contextInfo
+      const targetJid = quoted?.mentionedJid?.[0] || quoted?.participant
       
       const senderName = pushName || 'Alguien'
-      
-      let caption
+      let targetName = ''
+
       if (targetJid) {
-        let targetName = ''
+        const fullMsg = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
+        const pushNameQuoted = m.message?.extendedTextMessage?.contextInfo?.pushName
         
-        // Intento 1: Sacar el nombre del pushName del mensaje citado directamente
-        const quotedPushName = ctx?.pushName
-        
-        if (quotedPushName) {
-          targetName = quotedPushName
+        if (pushNameQuoted) {
+          targetName = pushNameQuoted
         } else if (m.isGroup) {
-          // Intento 2: Buscar en la lista de participantes del grupo
           const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
           const participant = groupMetadata.participants.find(p => p.id === targetJid)
           targetName = participant?.notify || participant?.verifiedName || targetJid.split('@')[0]
         } else {
-          // Intento 3: Solo el número limpio
           targetName = targetJid.split('@')[0]
         }
 
-        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
-      } else {
-        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
-      }
+        const caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
 
-      await sock.sendMessage(
-        m.key.remoteJid,
-        {
-          video: mp4Buffer,
-          mimetype: 'video/mp4',
-          gifPlayback: true,
-          caption: caption,
-          mentions: [sender, targetJid].filter(Boolean)
-        },
-        { quoted: m }
-      )
+        await sock.sendMessage(
+          m.key.remoteJid,
+          {
+            video: mp4Buffer,
+            mimetype: 'video/mp4',
+            gifPlayback: true,
+            caption: caption,
+            mentions: [sender, targetJid]
+          },
+          { quoted: m }
+        )
+      } else {
+        const caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+        await sock.sendMessage(
+          m.key.remoteJid,
+          {
+            video: mp4Buffer,
+            mimetype: 'video/mp4',
+            gifPlayback: true,
+            caption: caption,
+            mentions: [sender]
+          },
+          { quoted: m }
+        )
+      }
     } catch (e) {
       console.error(e)
     }
