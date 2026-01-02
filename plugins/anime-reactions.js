@@ -20,7 +20,7 @@ const actionPhrases = {
   lick: 'lamió a',
   highfive: 'chocó los cinco con',
   poke: 'le dio un toque a',
-  sleep: 'se durmió con',
+  sleep: 'se quedó dormido/a junto a',
   blush: 'se sonrojó frente a',
   smile: 'le sonrió a',
   wave: 'le saludó a',
@@ -59,19 +59,30 @@ export default {
       const sender = m.key.participant || m.key.remoteJid
       const ctx = m.message?.extendedTextMessage?.contextInfo || m.msg?.contextInfo
       const targetJid = ctx?.mentionedJid?.[0] || ctx?.participant
-      
+
       const senderName = pushName || 'Alguien'
       
       let caption
-      if (targetJid) {
+      if (targetJid && targetJid !== sender) {
         const mentionId = targetJid.split('@')[0]
         const groupMetadata = m.isGroup ? await sock.groupMetadata(m.key.remoteJid) : null
         const participant = groupMetadata?.participants.find(p => p.id === targetJid)
         const targetName = participant?.notify || participant?.verifiedName || mentionId
 
-        caption = `*${senderName}* ${actionPhrases[command]} @${mentionId}`
+        caption = `*${senderName}* ${actionPhrases[command]} *${targetName}*`
       } else {
-        caption = `*${senderName}* se ${actionPhrases[command].split(' ')[0]} a sí mismo/a`
+        // Frase más natural si no hay target
+        switch(command) {
+          case 'sleep':
+            caption = `*${senderName}* se quedó dormido/a plácidamente.`
+            break
+          case 'punch':
+            caption = `*${senderName}* practicó sus puñetazos al aire.`
+            break
+          default:
+            caption = `*${senderName}* hizo la acción solo/a.`
+            break
+        }
       }
 
       await sock.sendMessage(
