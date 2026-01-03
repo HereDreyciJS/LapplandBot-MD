@@ -16,12 +16,12 @@ export const setupWelcome = async (sock) => {
         text =
           `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n` +
           mentions.map(u => `@${u}`).join('\n') +
-          `\n\n${chat.welcomeText || '¡Disfruta tu estadía!'}`
+          `\n\n${chat.welcomeText || '¡Disfruta de tu estadía!'}`
       }
 
       if (update.action === 'remove') {
         text =
-          `✧𝖧𝖺𝗌𝗍𝖺 𝗅𝗎𝖾𝗀𝗈 en ${groupName}!\n\n` +
+          `✧𝖧𝖺𝗌𝗍𝖺 𝗅𝗎𝖾𝗀𝗈 de ${groupName}!\n\n` +
           mentions.map(u => `@${u}`).join('\n') +
           `\n\n${chat.byeText || '¡Que te vaya bien!'}`
       }
