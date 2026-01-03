@@ -14,21 +14,20 @@ export const setupWelcome = async (sock) => {
 
       if (update.action === 'add') {
         text =
-          `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n` +
+          `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n` + // doble salto de línea
           mentions.map(u => `@${u}`).join('\n') +
           `\n\n${chat.welcomeText || ''}`
       }
 
       if (update.action === 'remove') {
         text =
-          `✧𝖠𝖽𝗂𝗈𝗌 𝖽𝖾 ${groupName}\n` +
+          `✧𝖠𝖽𝗂𝗈𝗌 𝖾𝗌𝗍𝗈 𝖽𝖾 ${groupName}\n\n` + // doble salto de línea
           mentions.map(u => `@${u}`).join('\n') +
           `\n\n${chat.byeText || ''}`
       }
 
       if (!text) return
 
-      // Foto del bot en HD
       let botProfile = null
       try {
         const botId = sock.user?.id || sock.user?.jid
