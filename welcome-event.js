@@ -28,11 +28,11 @@ export const setupWelcome = async (sock) => {
 
       if (!text) return
 
-      // Tomar la foto del perfil del bot
+      // Foto del bot en HD
       let botProfile = null
       try {
         const botId = sock.user?.id || sock.user?.jid
-        botProfile = await sock.profilePictureUrl(botId)
+        botProfile = await sock.profilePictureUrl(botId, 'image')
       } catch {
         botProfile = null
       }
