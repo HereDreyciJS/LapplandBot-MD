@@ -4,7 +4,7 @@ import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
-import { setupWelcome } from './welcome-event.js'
+import { setupWelcome, loadWelcome } from './welcome-event.js'
 
 const start = async () => {
   global.settings = settings
@@ -15,6 +15,8 @@ const start = async () => {
 
   await loadPlugins()
 
+  loadWelcome()
+  
   const sock = await startConnection()
 
   sock.ev.on('group-participants.update',
@@ -33,6 +35,7 @@ const start = async () => {
 }
 
 start()
+
 
 
 
