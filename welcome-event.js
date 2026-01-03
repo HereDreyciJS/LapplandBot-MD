@@ -28,17 +28,16 @@ export const setupWelcome = async (sock) => {
 
       if (!text) return
 
-      let botProfile = null
+      let groupProfile = null
       try {
-        const botId = sock.user?.id || sock.user?.jid
-        botProfile = await sock.profilePictureUrl(botId, 'image')
+        groupProfile = await sock.groupProfilePicture(update.id)
       } catch {
-        botProfile = null
+        groupProfile = null
       }
 
-      if (botProfile) {
+      if (groupProfile) {
         await sock.sendMessage(update.id, {
-          image: { url: botProfile },
+          image: { url: groupProfile },
           caption: text,
           mentions: users
         })
