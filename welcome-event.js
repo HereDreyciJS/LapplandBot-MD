@@ -1,103 +1,100 @@
-import Canvas from 'canvas'
-import fetch from 'node-fetch'
+import { existsSync, mkdirSync, writeFile } from 'fs'
+import path from 'path'
+import sharp from 'sharp'
 
-const db = global.db || {
-  chats: {},
-  getChat: (id) => db.chats[id] || { welcome: true, goodbye: true },
-  setChat: (id, data) => { db.chats[id] = { ...(db.chats[id] || {}), ...data } }
+const welcomeDB = {}
+
+// Ajustes globales por grupo
+const dbPath = './database/welcome.json'
+if (!existsSync('./database')) mkdirSync('./database', { recursive: true })
+
+export function loadWelcome() {
+  try {
+    const data = require(dbPath)
+    Object.assign(welcomeDB, data)
+  } catch {
+    writeFile(dbPath, JSON.stringify({}), () => {})
+  }
 }
 
-async function generateCard(groupName, users, groupProfileUrl) {
-  const width = 800
-  const height = 400
-  const canvas = Canvas.createCanvas(width, height)
-  const ctx = canvas.getContext('2d')
-
-  // Fondo: foto del grupo
-  if (groupProfileUrl) {
-    const res = await fetch(groupProfileUrl)
-    const img = await Canvas.loadImage(await res.buffer())
-    ctx.drawImage(img, 0, 0, width, height)
-  } else {
-    ctx.fillStyle = '#2C2F33'
-    ctx.fillRect(0, 0, width, height)
-  }
-
-  ctx.fillStyle = 'rgba(0,0,0,0.4)'
-  ctx.fillRect(0, 0, width, height)
-
-  // Texto arriba
-  ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 40px Sans'
-  ctx.textAlign = 'center'
-  ctx.fillText(`✧ Bienvenido a ${groupName}!`, width / 2, 60)
-
-  // Dibujar los avatares de los usuarios
-  const avatarSize = 100
-  let startX = width / 2 - ((users.length - 1) * (avatarSize + 20)) / 2
-  const y = height / 2
-  for (let u of users) {
-    if (!u.profileUrl) continue
-    try {
-      const res = await fetch(u.profileUrl)
-      const img = await Canvas.loadImage(await res.buffer())
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(startX + avatarSize / 2, y, avatarSize / 2, 0, Math.PI * 2)
-      ctx.closePath()
-      ctx.clip()
-      ctx.drawImage(img, startX, y - avatarSize / 2, avatarSize, avatarSize)
-      ctx.restore()
-      startX += avatarSize + 20
-    } catch {}
-  }
-
-  // Texto abajo con nombres
-  ctx.fillStyle = '#ffffff'
-  ctx.font = '30px Sans'
-  let textY = height - 60
-  for (let u of users) {
-    ctx.fillText(`@${u.pushName}`, width / 2, textY)
-    textY += 35
-  }
-
-  return canvas.toBuffer()
+export function saveWelcome() {
+  writeFile(dbPath, JSON.stringify(welcomeDB, null, 2), () => {})
 }
 
-export async function setupWelcome(sock) {
+export function setupWelcome(sock) {
   sock.ev.on('group-participants.update', async (update) => {
     try {
-      const chat = db.getChat(update.id)
-      const groupMeta = await sock.groupMetadata(update.id)
-      const groupProfileUrl = await sock.profilePictureUrl(update.id, 'image').catch(() => null)
+      const jidGroup = update.id
+      const action = update.action
+      const groupSettings = welcomeDB[jidGroup]
+      if (!groupSettings || !groupSettings.enabled) return
 
-      if (update.action === 'add' && chat.welcome) {
-        const users = []
-        for (let jid of update.participants) {
-          const profileUrl = await sock.profilePictureUrl(jid, 'image').catch(() => null)
-          const pushName = (await sock.onWhatsApp(jid))[0]?.notify || jid.split('@')[0]
-          users.push({ jid, profileUrl, pushName })
+      const groupMeta = await sock.groupMetadata(jidGroup)
+      const groupName = groupMeta.subject || 'este grupo'
+
+      for (const participant of update.participants) {
+        const userJid = participant
+        let userName = userJid.split('@')[0]
+
+        let text = ''
+        if (action === 'add') {
+          text = `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n@${userName}`
+          if (groupSettings.message) text += `\n\n${groupSettings.message}`
+        } else if (action === 'remove') {
+          text = `✧𝖣𝖾𝗌𝗉𝖾𝗋𝗍𝗂𝗗𝗈 𝖽𝖾 ${groupName}\n\n@${userName}`
+          if (groupSettings.leaveMessage) text += `\n\n${groupSettings.leaveMessage}`
+        } else continue
+
+        let groupPicBuffer
+        try {
+          groupPicBuffer = await sock.profilePictureUrl(jidGroup, 'image')
+            .then(url => fetch(url).then(r => r.arrayBuffer()))
+            .then(ab => Buffer.from(ab))
+        } catch {
+          groupPicBuffer = Buffer.alloc(0)
         }
-        const card = await generateCard(groupMeta.subject, users, groupProfileUrl)
-        await sock.sendMessage(update.id, {
-          image: card,
-          caption: '¡Disfruta tu estadía!',
-          mentions: users.map(u => u.jid)
+
+        let userPicBuffer
+        try {
+          userPicBuffer = await sock.profilePictureUrl(userJid, 'image')
+            .then(url => fetch(url).then(r => r.arrayBuffer()))
+            .then(ab => Buffer.from(ab))
+        } catch {
+          userPicBuffer = Buffer.alloc(0)
+        }
+
+        // Combinación con sharp
+        let composite = sharp({
+          create: {
+            width: 1024,
+            height: 1024,
+            channels: 3,
+            background: '#ffffff'
+          }
         })
-      }
 
-      if (update.action === 'remove' && chat.goodbye) {
-        const users = []
-        for (let jid of update.participants) {
-          const profileUrl = await sock.profilePictureUrl(jid, 'image').catch(() => null)
-          const pushName = (await sock.onWhatsApp(jid))[0]?.notify || jid.split('@')[0]
-          users.push({ jid, profileUrl, pushName })
+        if (groupPicBuffer.length) {
+          composite = composite.composite([{ input: groupPicBuffer, blend: 'over' }])
         }
-        const card = await generateCard(groupMeta.subject, users, groupProfileUrl)
-        await sock.sendMessage(update.id, {
-          image: card,
-          caption: '¡Hasta luego!',
-          mentions: users.map(u => u.jid)
+
+        if (userPicBuffer.length) {
+          composite = composite.composite([{
+            input: userPicBuffer,
+            top: 720,
+            left: 400,
+            blend: 'over',
+            gravity: 'center'
+          }])
+        }
+
+        const bufferFinal = await composite
+          .png()
+          .toBuffer()
+
+        await sock.sendMessage(jidGroup, {
+          image: bufferFinal,
+          caption: text,
+          mentions: [userJid]
         })
       }
     } catch (e) {
