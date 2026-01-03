@@ -1,48 +1,36 @@
-export default function setupWelcome(sock) {
+export const setupWelcome = (sock) => {
   sock.ev.on('group-participants.update', async (update) => {
     try {
-      const { id, participants, action } = update
-      if (!id.endsWith('@g.us')) return
+      const chat = global.db.getChat(update.id)
+      if (!chat?.welcome) return
 
-      const chat = global.db.getChat(id)
-      if (!chat || !chat.welcome) return
+      const meta = await sock.groupMetadata(update.id)
+      const groupName = meta.subject
 
-      if (action !== 'add' && action !== 'remove') return
-
-      const metadata = await sock.groupMetadata(id)
-      const groupName = metadata.subject
-
-      const botJid = sock.user.id
-      const botPP = await sock.profilePictureUrl(botJid, 'image').catch(() => null)
-
-      let mentions = []
-      let usersText = ''
-
-      for (const jid of participants) {
-        mentions.push(jid)
-        usersText += `@${jid.split('@')[0]}\n`
-      }
+      const users = update.participants.map(p => p.id || p.phoneNumber)
+      const mentions = users.map(jid => jid.replace(/@.+/, ''))
 
       let text = ''
 
-      if (action === 'add') {
+      if (update.action === 'add') {
         text =
-`✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!
-${usersText}
-${chat.welcomeText || 'Esperamos que disfrutes tu estadía 💫'}`
+          `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n` +
+          mentions.map(u => `@${u}`).join('\n') +
+          `\n\n${chat.welcomeText || ''}`
       }
 
-      if (action === 'remove') {
+      if (update.action === 'remove') {
         text =
-`✧𝖣𝖾𝗌𝗉𝖾𝖽𝗂𝖽𝖺
-${usersText}
-${chat.byeText || 'Te deseamos lo mejor 🍃'}`
+          `✧𝖠𝖽𝗂𝗈𝗌 𝖽𝖾 ${groupName}\n` +
+          mentions.map(u => `@${u}`).join('\n') +
+          `\n\n${chat.byeText || ''}`
       }
 
-      await sock.sendMessage(id, {
-        image: botPP ? { url: botPP } : undefined,
-        caption: text,
-        mentions
+      if (!text) return
+
+      await sock.sendMessage(update.id, {
+        text,
+        mentions: users
       })
     } catch (e) {
       console.error('WelcomeEvent Error:', e)
