@@ -1,4 +1,4 @@
-export const setupWelcome = (sock) => {
+export const setupWelcome = async (sock) => {
   sock.ev.on('group-participants.update', async (update) => {
     try {
       const chat = global.db.getChat(update.id)
@@ -28,10 +28,27 @@ export const setupWelcome = (sock) => {
 
       if (!text) return
 
-      await sock.sendMessage(update.id, {
-        text,
-        mentions: users
-      })
+      // Tomar la foto del perfil del bot
+      let botProfile = null
+      try {
+        const botId = sock.user?.id || sock.user?.jid
+        botProfile = await sock.profilePictureUrl(botId)
+      } catch {
+        botProfile = null
+      }
+
+      if (botProfile) {
+        await sock.sendMessage(update.id, {
+          image: { url: botProfile },
+          caption: text,
+          mentions: users
+        })
+      } else {
+        await sock.sendMessage(update.id, {
+          text,
+          mentions: users
+        })
+      }
     } catch (e) {
       console.error('WelcomeEvent Error:', e)
     }
