@@ -4,7 +4,7 @@ import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
-import './welcome-event.js'
+import setupWelcome from './welcome-event.js'
 
 const start = async () => {
   global.settings = settings
@@ -16,6 +16,7 @@ const start = async () => {
   await loadPlugins()
 
   const sock = await startConnection()
+  setupWelcome(sock)
   
   sock.ev.on('messages.upsert', async (m) => {
     if (m.type !== 'notify') return
@@ -27,6 +28,7 @@ const start = async () => {
 }
 
 start()
+
 
 
 
