@@ -4,7 +4,7 @@ import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
-import setupWelcome from './welcome-event.js'
+import { setupWelcome } from './welcome-event.js'
 
 const start = async () => {
   global.settings = settings
@@ -33,6 +33,7 @@ const start = async () => {
 }
 
 start()
+
 
 
 
