@@ -16,6 +16,11 @@ const start = async () => {
   await loadPlugins()
 
   const sock = await startConnection()
+
+  sock.ev.on('group-participants.update',
+             (update) => {
+               console.log('GROUP EVENT:', update)
+             })
   setupWelcome(sock)
   
   sock.ev.on('messages.upsert', async (m) => {
@@ -28,6 +33,7 @@ const start = async () => {
 }
 
 start()
+
 
 
 
