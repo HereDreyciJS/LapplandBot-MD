@@ -30,7 +30,7 @@ export const setupWelcome = async (sock) => {
 
       let groupProfile = null
       try {
-        groupProfile = await sock.groupProfilePicture(update.id)
+        groupProfile = await sock.profilePictureUrl(update.id, 'image')
       } catch {
         groupProfile = null
       }
