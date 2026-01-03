@@ -14,14 +14,14 @@ export const setupWelcome = async (sock) => {
 
       if (update.action === 'add') {
         text =
-          `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n` + // doble salto de línea
+          `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n` + 
           mentions.map(u => `@${u}`).join('\n') +
           `\n\n${chat.welcomeText || ''}`
       }
 
       if (update.action === 'remove') {
         text =
-          `✧𝖠𝖽𝗂𝗈𝗌 𝖾𝗌𝗍𝗈 𝖽𝖾 ${groupName}\n\n` + // doble salto de línea
+          `✧𝖠𝖽𝗂𝗈𝗌 𝖾𝗌𝗍𝗈 𝖽𝖾 ${groupName}\n\n` + 
           mentions.map(u => `@${u}`).join('\n') +
           `\n\n${chat.byeText || ''}`
       }
