@@ -16,8 +16,6 @@ const start = async () => {
   await loadPlugins()
 
   const sock = await startConnection()
-
-  setupWelcome(sock)
   
   sock.ev.on('messages.upsert', async (m) => {
     if (m.type !== 'notify') return
@@ -29,5 +27,6 @@ const start = async () => {
 }
 
 start()
+
 
 
