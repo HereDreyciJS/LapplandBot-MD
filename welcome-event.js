@@ -1,100 +1,80 @@
-import { existsSync, mkdirSync, writeFile } from 'fs'
-import path from 'path'
+import { readFile } from 'fs/promises'
 import sharp from 'sharp'
 
-const welcomeDB = {}
-
-// Ajustes globales por grupo
-const dbPath = './database/welcome.json'
-if (!existsSync('./database')) mkdirSync('./database', { recursive: true })
-
-export function loadWelcome() {
-  try {
-    const data = require(dbPath)
-    Object.assign(welcomeDB, data)
-  } catch {
-    writeFile(dbPath, JSON.stringify({}), () => {})
-  }
+const defaultWelcome = {
+  enabled: true,
+  message: '¡Bienvenido al grupo!',
+  goodbye: '¡Hasta luego!',
 }
 
-export function saveWelcome() {
-  writeFile(dbPath, JSON.stringify(welcomeDB, null, 2), () => {})
+const db = global.db || { chats: {} }
+
+function getChat(jid) {
+  if (!db.chats[jid]) db.chats[jid] = { welcome: { ...defaultWelcome } }
+  return db.chats[jid]
 }
 
 export function setupWelcome(sock) {
-  sock.ev.on('group-participants.update', async (update) => {
+  sock.ev.on('group-participants.update', async (event) => {
     try {
-      const jidGroup = update.id
-      const action = update.action
-      const groupSettings = welcomeDB[jidGroup]
-      if (!groupSettings || !groupSettings.enabled) return
+      const jid = event.id
+      const chat = getChat(jid)
+      if (!chat.welcome.enabled) return
 
-      const groupMeta = await sock.groupMetadata(jidGroup)
-      const groupName = groupMeta.subject || 'este grupo'
+      const action = event.action
+      const participants = event.participants
 
-      for (const participant of update.participants) {
-        const userJid = participant
-        let userName = userJid.split('@')[0]
+      let groupPic
+      try {
+        groupPic = await sock.profilePictureUrl(jid, 'image')
+      } catch {
+        groupPic = null
+      }
 
-        let text = ''
+      let groupBuffer
+      if (groupPic) {
+        const response = await fetch(groupPic)
+        const buf = Buffer.from(await response.arrayBuffer())
+        groupBuffer = await sharp(buf).resize(1024, 1024).png().toBuffer()
+      }
+
+      for (const user of participants) {
+        let userPic
+        try {
+          userPic = await sock.profilePictureUrl(user, 'image')
+        } catch {
+          userPic = null
+        }
+
+        let userBuffer
+        if (userPic) {
+          const response = await fetch(userPic)
+          const buf = Buffer.from(await response.arrayBuffer())
+          userBuffer = await sharp(buf).resize(256, 256).png().toBuffer()
+        }
+
+        let image
+        if (groupBuffer && userBuffer) {
+          image = await sharp(groupBuffer)
+            .composite([{ input: userBuffer, top: 768, left: 384 }])
+            .png()
+            .toBuffer()
+        } else {
+          image = groupBuffer
+        }
+
+        const mentions = [user]
+        let text
         if (action === 'add') {
-          text = `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n@${userName}`
-          if (groupSettings.message) text += `\n\n${groupSettings.message}`
+          text = `${chat.welcome.message}\n\n${participants.map(u => '@' + u.split('@')[0]).join('\n')}`
         } else if (action === 'remove') {
-          text = `✧𝖣𝖾𝗌𝗉𝖾𝗋𝗍𝗂𝗗𝗈 𝖽𝖾 ${groupName}\n\n@${userName}`
-          if (groupSettings.leaveMessage) text += `\n\n${groupSettings.leaveMessage}`
+          text = `${chat.welcome.goodbye}\n\n${participants.map(u => '@' + u.split('@')[0]).join('\n')}`
         } else continue
 
-        let groupPicBuffer
-        try {
-          groupPicBuffer = await sock.profilePictureUrl(jidGroup, 'image')
-            .then(url => fetch(url).then(r => r.arrayBuffer()))
-            .then(ab => Buffer.from(ab))
-        } catch {
-          groupPicBuffer = Buffer.alloc(0)
-        }
-
-        let userPicBuffer
-        try {
-          userPicBuffer = await sock.profilePictureUrl(userJid, 'image')
-            .then(url => fetch(url).then(r => r.arrayBuffer()))
-            .then(ab => Buffer.from(ab))
-        } catch {
-          userPicBuffer = Buffer.alloc(0)
-        }
-
-        // Combinación con sharp
-        let composite = sharp({
-          create: {
-            width: 1024,
-            height: 1024,
-            channels: 3,
-            background: '#ffffff'
-          }
-        })
-
-        if (groupPicBuffer.length) {
-          composite = composite.composite([{ input: groupPicBuffer, blend: 'over' }])
-        }
-
-        if (userPicBuffer.length) {
-          composite = composite.composite([{
-            input: userPicBuffer,
-            top: 720,
-            left: 400,
-            blend: 'over',
-            gravity: 'center'
-          }])
-        }
-
-        const bufferFinal = await composite
-          .png()
-          .toBuffer()
-
-        await sock.sendMessage(jidGroup, {
-          image: bufferFinal,
+        await sock.sendMessage(jid, {
+          image,
           caption: text,
-          mentions: [userJid]
+          mentions,
         })
       }
     } catch (e) {
