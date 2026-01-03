@@ -1,44 +1,51 @@
-export const setupWelcome = (sock) => {
+export default function setupWelcome(sock) {
   sock.ev.on('group-participants.update', async (update) => {
     try {
-      const jid = update.id
-      const chat = global.db.getChat(jid)
-      if (!chat?.welcome) return
+      const { id, participants, action } = update
+      if (!id.endsWith('@g.us')) return
 
-      const meta = await sock.groupMetadata(jid)
-      const groupName = meta.subject
-      const mentions = update.participants
+      const chat = global.db.getChat(id)
+      if (!chat || !chat.welcome) return
 
-      const textMentions = mentions
-        .map(u => `@~${u.split('@')[0]}`)
-        .join('\n')
+      if (action !== 'add' && action !== 'remove') return
 
-      if (update.action === 'add') {
-        const text =
+      const metadata = await sock.groupMetadata(id)
+      const groupName = metadata.subject
+
+      const botJid = sock.user.id
+      const botPP = await sock.profilePictureUrl(botJid, 'image').catch(() => null)
+
+      let mentions = []
+      let usersText = ''
+
+      for (const jid of participants) {
+        mentions.push(jid)
+        usersText += `@${jid.split('@')[0]}\n`
+      }
+
+      let text = ''
+
+      if (action === 'add') {
+        text =
 `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!
-${textMentions}
-${chat.welcomeText || ''}`
-
-        const pp = await sock.profilePictureUrl(sock.user.id, 'image').catch(() => null)
-
-        await sock.sendMessage(jid, {
-          image: pp ? { url: pp } : undefined,
-          caption: text,
-          mentions
-        })
+${usersText}
+${chat.welcomeText || 'Esperamos que disfrutes tu estadía 💫'}`
       }
 
-      if (update.action === 'remove') {
-        const text =
-`👋 Hasta luego de ${groupName}
-${textMentions}
-${chat.byeText || ''}`
-
-        await sock.sendMessage(jid, {
-          text,
-          mentions
-        })
+      if (action === 'remove') {
+        text =
+`✧𝖣𝖾𝗌𝗉𝖾𝖽𝗂𝖽𝖺
+${usersText}
+${chat.byeText || 'Te deseamos lo mejor 🍃'}`
       }
-    } catch {}
+
+      await sock.sendMessage(id, {
+        image: botPP ? { url: botPP } : undefined,
+        caption: text,
+        mentions
+      })
+    } catch (e) {
+      console.error('WelcomeEvent Error:', e)
+    }
   })
 }
