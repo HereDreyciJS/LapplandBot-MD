@@ -22,9 +22,11 @@
     "wa-sticker-formatter": "^4.4.4",
     "sharp": "0.33.5",
     "ffmpeg-static": "^5.1.0",
-    "fluent-ffmpeg": "^2.1.2"
+    "fluent-ffmpeg": "^2.1.2",
+    "canvas": "^2.12.0"
   }
 }
+
 
 
 
