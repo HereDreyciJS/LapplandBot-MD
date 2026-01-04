@@ -1,6 +1,6 @@
 export default {
   command: ['autoadmin'],
-  description: 'Hace admin al owner que ejecute el comando en el grupo',
+  description: '(USO EXCLUSIVO DEL OWNER)',
   owner: true,
   execute: async ({ sock, m, isGroup, isOwner }) => {
     try {
