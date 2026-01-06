@@ -13,8 +13,8 @@ export default {
         )
       }
 
-      const apiKey = 'soblend-mgg4ch1sb'
-      const url = `https://api/pinterest?q=${encodeURIComponent(text)}&apiKey=${apiKey}`
+      const apiKey = 'YOUR_API_KEY'
+      const url = `https://api.lolhuman.xyz/api/pinterest?apikey=${apiKey}&query=${encodeURIComponent(text)}`
 
       const res = await fetch(url)
       const json = await res.json()
@@ -46,4 +46,4 @@ export default {
       )
     }
   }
-        }
+}
