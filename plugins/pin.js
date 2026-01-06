@@ -1,59 +1,40 @@
-import fetch from 'node-fetch'
+import fetch from "node-fetch"
 
-export default {
-  command: ['pin', 'pinterest'],
-  execute: async ({ sock, m, text }) => {
-    try {
-      if (!text) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '📌 Usa:\n/pin aesthetic' },
-          { quoted: m }
-        )
-      }
-
-      const url = `https://pinterest-api.vercel.app/?q=${encodeURIComponent(text)}`
-      const res = await fetch(url)
-
-      const body = await res.text()
-
-      let data
-      try {
-        data = JSON.parse(body)
-      } catch {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ Pinterest no respondió correctamente. Intenta otra vez.' },
-          { quoted: m }
-        )
-      }
-
-      if (!Array.isArray(data) || data.length === 0) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ No encontré imágenes.' },
-          { quoted: m }
-        )
-      }
-
-      const img = data[Math.floor(Math.random() * data.length)]
-
-      await sock.sendMessage(
-        m.key.remoteJid,
-        {
-          image: { url: img },
-          caption: `📌 *Pinterest*\n🔎 ${text}`
-        },
-        { quoted: m }
-      )
-
-    } catch (err) {
-      console.error('PIN ERROR:', err)
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: '⚠️ Error inesperado en /pin.' },
-        { quoted: m }
-      )
+export async function execute(sock, m, args) {
+  try {
+    if (!args[0]) {
+      return sock.sendMessage(m.chat, {
+        text: "✏️ Usa: /pin <búsqueda>"
+      }, { quoted: m })
     }
+
+    const query = args.join(" ")
+    const url = `https://api.ryzendesu.vip/api/pinterest?query=${encodeURIComponent(query)}`
+
+    const res = await fetch(url, { timeout: 10_000 })
+
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      throw new Error("Respuesta no es JSON")
+    }
+
+    const data = await res.json()
+
+    if (!data.status || !data.result?.length) {
+      throw new Error("Sin resultados")
+    }
+
+    const img = data.result[Math.floor(Math.random() * data.result.length)]
+
+    await sock.sendMessage(m.chat, {
+      image: { url: img },
+      caption: `📌 Pinterest\n🔎 ${query}`
+    }, { quoted: m })
+
+  } catch (err) {
+    console.error("PIN ERROR:", err.message)
+
+    await sock.sendMessage(m.chat, {
+      text: "❌ Pinterest no respondió correctamente, intenta otra vez"
+    }, { quoted: m })
   }
 }
