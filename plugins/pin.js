@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 export default {
   command: ['pin', 'pinterest'],
-  description: 'Busca imágenes en Pinterest',
+  description: 'Busca imágenes de Pinterest',
   execute: async ({ sock, m, text }) => {
     try {
       if (!text) {
@@ -13,27 +13,25 @@ export default {
         )
       }
 
-      const apiKey = 'YOUR_API_KEY'
-      const url = `https://api.lolhuman.xyz/api/pinterest?apikey=${apiKey}&query=${encodeURIComponent(text)}`
-
+      const url = `https://pinterest-api.vercel.app/?q=${encodeURIComponent(text)}`
       const res = await fetch(url)
-      const json = await res.json()
+      const data = await res.json()
 
-      if (!json || !json.result || json.result.length === 0) {
+      if (!Array.isArray(data) || data.length === 0) {
         return sock.sendMessage(
           m.key.remoteJid,
-          { text: '❌ No se encontraron resultados.' },
+          { text: '❌ No se encontraron imágenes.' },
           { quoted: m }
         )
       }
 
-      const image = json.result[Math.floor(Math.random() * json.result.length)]
+      const image = data[Math.floor(Math.random() * data.length)]
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
           image: { url: image },
-          caption: `📌 *Pinterest*\n🔎 Búsqueda: *${text}*`
+          caption: `📌 *Pinterest*\n🔎 *${text}*`
         },
         { quoted: m }
       )
@@ -41,7 +39,7 @@ export default {
       console.error(e)
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ Error al obtener la imagen.' },
+        { text: '❌ Error al buscar en Pinterest.' },
         { quoted: m }
       )
     }
