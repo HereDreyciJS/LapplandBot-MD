@@ -1,15 +1,17 @@
 import fetch from "node-fetch"
 
 export default {
-  name: "pin",
   command: ["pin", "pinterest"],
+  description: "Busca imágenes en Pinterest",
 
-  async handler(m, { sock, args }) {
+  execute: async ({ sock, m, args, command, prefix, isGroup }) => {
     try {
-      if (!args[0]) {
-        return sock.sendMessage(m.chat, {
-          text: "✏️ Usa: /pin <búsqueda>"
-        }, { quoted: m })
+      if (!args.length) {
+        return sock.sendMessage(
+          m.chat,
+          { text: `📌 Usa: ${prefix + command} <búsqueda>` },
+          { quoted: m }
+        )
       }
 
       const query = args.join(" ")
@@ -17,30 +19,36 @@ export default {
 
       const res = await fetch(url, { timeout: 10000 })
 
-      const ct = res.headers.get("content-type") || ""
-      if (!ct.includes("application/json")) {
-        throw new Error("Respuesta no JSON")
+      const contentType = res.headers.get("content-type") || ""
+      if (!contentType.includes("application/json")) {
+        throw new Error("Respuesta no válida")
       }
 
-      const data = await res.json()
+      const json = await res.json()
 
-      if (!data.status || !Array.isArray(data.result) || data.result.length === 0) {
+      if (!json.status || !Array.isArray(json.result) || json.result.length === 0) {
         throw new Error("Sin resultados")
       }
 
-      const img = data.result[Math.floor(Math.random() * data.result.length)]
+      const image = json.result[Math.floor(Math.random() * json.result.length)]
 
-      await sock.sendMessage(m.chat, {
-        image: { url: img },
-        caption: `📌 Pinterest\n🔎 ${query}`
-      }, { quoted: m })
+      await sock.sendMessage(
+        m.chat,
+        {
+          image: { url: image },
+          caption: `📌 *Pinterest*\n🔎 ${query}`
+        },
+        { quoted: m }
+      )
 
     } catch (err) {
-      console.error("[PIN ERROR]", err.message)
+      console.error("[PIN ERROR]", err)
 
-      await sock.sendMessage(m.chat, {
-        text: "❌ Pinterest no respondió correctamente, intenta otra vez"
-      }, { quoted: m })
+      await sock.sendMessage(
+        m.chat,
+        { text: "❌ Pinterest no respondió correctamente, intenta otra vez" },
+        { quoted: m }
+      )
     }
   }
 }
