@@ -1,6 +1,8 @@
 export default {
   command: ['kick', 'expulsar'],
   description: 'Expulsar a miembros del grupo',
+  admin: true,
+
   execute: async ({ sock, m, isGroup, isAdmin, isOwner }) => {
     if (!isGroup) {
       return sock.sendMessage(
@@ -26,13 +28,16 @@ export default {
     if (!user) {
       return sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ Etiqueta o responde al mensaje de la persona que quieres expulsar.' },
+        { text: '❌ Etiqueta o responde al mensaje del usuario que deseas expulsar.' },
         { quoted: m }
       )
     }
 
     const meta = await sock.groupMetadata(m.key.remoteJid)
-    const target = meta.participants.find(p => p.id === user)
+
+    const target = meta.participants.find(
+      p => p.id === user || p.lid === user
+    )
 
     if (!target) {
       return sock.sendMessage(
@@ -68,12 +73,12 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          text: `✅ @${user.split('@')[0]} expulsado correctamente.`,
+          text: `✅ @${user.split('@')[0]} fue expulsado del grupo.`,
           mentions: [user]
         },
         { quoted: m }
       )
-    } catch {
+    } catch (e) {
       await sock.sendMessage(
         m.key.remoteJid,
         { text: '❌ No pude expulsar al usuario.' },
