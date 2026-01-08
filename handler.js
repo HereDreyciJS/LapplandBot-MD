@@ -24,11 +24,18 @@ export const handler = async (sock, msg) => {
     const isOwner = global.settings.bot.owners.includes(senderNumber)
     const isBot = msg.key.fromMe === true
 
+    const user = global.db.getUser(rawSender)
+    if (msg.pushName && msg.pushName !== user.name) {
+      user.name = msg.pushName
+    }
+
     let isAdmin = false
     if (isGroup) {
       try {
         const meta = await sock.groupMetadata(msg.key.remoteJid)
-        const participant = meta.participants.find(p => p.id === rawSender)
+        const participant = meta.participants.find(
+          p => p.id === rawSender || p.lid === rawSender
+        )
         isAdmin = !!(participant?.admin || participant?.isSuperAdmin)
       } catch {
         isAdmin = false
