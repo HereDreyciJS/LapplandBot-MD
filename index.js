@@ -14,30 +14,43 @@ const start = async () => {
   }
 
   await loadPlugins()
-  
   const sock = await startConnection()
 
-  sock.ev.on('group-participants.update',
-             (update) => {
-               console.log('GROUP EVENT:', update)
-             })
   setupWelcome(sock)
-  
-  sock.ev.on('messages.upsert', async (m) => {
-    if (m.type !== 'notify') return
-    await handler(sock, m)
+
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update
+
+    if (connection === 'open') {
+      console.log('✅ Bot conectado')
+    }
+
+    if (connection === 'close') {
+      const code = lastDisconnect?.error?.output?.statusCode
+      console.log('❌ Conexión cerrada:', code)
+
+      if (code !== 401) {
+        console.log('🔄 Reconectando...')
+        start()
+      } else {
+        console.log('🚫 Sesión cerrada')
+      }
+    }
   })
 
-  process.on('uncaughtException', () => {})
-  process.on('unhandledRejection', () => {})
+  sock.ev.on('messages.upsert', async (m) => {
+    try {
+      if (m.type !== 'notify') return
+      for (const msg of m.messages) {
+        await handler(sock, msg)
+      }
+    } catch (e) {
+      console.error('❌ Error en handler:', e)
+    }
+  })
+
+  process.on('uncaughtException', console.error)
+  process.on('unhandledRejection', console.error)
 }
 
 start()
-
-
-
-
-
-
-
-
