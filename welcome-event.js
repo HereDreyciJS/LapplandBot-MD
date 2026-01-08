@@ -4,9 +4,7 @@ export const setupWelcome = (sock) => {
       const chat = global.db.getChat(update.id)
       if (!chat?.welcome) return
 
-      const meta = await sock.groupMetadata(update.id)
-      const groupName = meta.subject
-      const participants = meta.participants || []
+      const groupName = (await sock.groupMetadata(update.id)).subject
 
       const users = update.participants
         .map(p => {
@@ -19,14 +17,14 @@ export const setupWelcome = (sock) => {
 
       if (!users.length) return
 
-      const names = users.map(jid => {
-        const user = participants.find(p => p.id === jid || p.lid === jid)
-        return (
-          user?.notify ||
-          user?.name ||
-          user?.pushName ||
-          'Nuevo usuario'
-        )
+      const lines = users.map(jid => {
+        const user = global.db.getUser(jid)
+
+        if (user?.name) {
+          return user.name
+        }
+
+        return `@${jid.split('@')[0]}`
       })
 
       let text = ''
@@ -34,14 +32,14 @@ export const setupWelcome = (sock) => {
       if (update.action === 'add') {
         text =
           `✧𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝗈 𝖺 ${groupName}!\n\n` +
-          names.join('\n') +
+          lines.join('\n') +
           `\n\n${chat.welcomeText || '¡Disfruta de tu estadía!'}`
       }
 
       if (update.action === 'remove') {
         text =
           `✧𝖧𝖺𝗌𝗍𝖺 𝗅𝗎𝖾𝗀𝗈 de ${groupName}!\n\n` +
-          names.join('\n') +
+          lines.join('\n') +
           `\n\n${chat.byeText || '¡Que te vaya bien!'}`
       }
 
