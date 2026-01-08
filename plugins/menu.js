@@ -1,4 +1,5 @@
 import { getUptime } from '../lib/utils/uptime.js'
+import { getBotType } from '../lib/utils/botType.js'
 
 export default {
   command: ['menu', 'help'],
@@ -9,11 +10,17 @@ export default {
     const { name, prefix, image, newsletter } = bot
 
     const jid = m.key.participant || m.key.remoteJid
-    const mentionText = `@${jid.split('@')[0]}`
-    const displayName = user?.name || mentionText
+    const mention = `@${jid.split('@')[0]}`
+    const displayName = user?.name || mention
+
+    const { type } = getBotType(sock)
+    const botTypeLabel =
+      type === 'main' ? 'Principal' :
+      type === 'sub' ? 'Sub-Bot' :
+      'Desconocido'
 
     const saludo =
-      `*¡ʜᴏʟᴀ!* ${mentionText}, ¿cómo está tu día?\n` +
+      `> *¡ʜᴏʟᴀ!* ${mention}, ¿cómo está tu día?\n` +
       `mucho gusto, mi nombre es *${name}*\n\n`
 
     const seen = new Set()
@@ -24,7 +31,6 @@ export default {
         const cmd = Array.isArray(p.command) ? p.command[0] : p.command
         if (seen.has(cmd)) return null
         seen.add(cmd)
-
         const title = `✿ *${prefix}${cmd}*`
         const desc = p.description ? `\n> ${p.description}` : ''
         return `${title}${desc}`
@@ -38,7 +44,7 @@ export default {
 `${saludo}` +
 `┏━ *Info* ━⊜
 ┃⋄ *Uptime* :: ${uptime}
-┃⋄ *Tipo* :: WhatsApp Bot
+┃⋄ *Tipo* :: ${botTypeLabel}
 ┗━━◘
 
 ${list}`
@@ -62,4 +68,3 @@ ${list}`
     )
   }
 }
-
