@@ -7,12 +7,9 @@ import { handler } from './handler.js'
 import { setupWelcome } from './welcome-event.js'
 
 let sock
-let starting = false
+let reconnecting = false
 
 const start = async () => {
-  if (starting) return
-  starting = true
-
   try {
     global.settings = settings
 
@@ -29,16 +26,16 @@ const start = async () => {
       const { connection, lastDisconnect } = update
 
       if (connection === 'open') {
+        reconnecting = false
         console.log('✅ Bot conectado')
       }
 
-      if (connection === 'close') {
+      if (connection === 'close' && !reconnecting) {
+        reconnecting = true
         const code = lastDisconnect?.error?.output?.statusCode
         console.log('❌ Conexión cerrada:', code)
 
         if (code !== 401) {
-          console.log('🔄 Reconectando...')
-          starting = false
           start()
         } else {
           console.log('🚫 Sesión cerrada')
@@ -53,14 +50,12 @@ const start = async () => {
           await handler(sock, msg)
         }
       } catch (e) {
-        console.error('❌ Error en messages.upsert:', e)
+        console.error('❌ Error en handler:', e)
       }
     })
 
   } catch (e) {
-    console.error('❌ Error al iniciar el bot:', e)
-  } finally {
-    starting = false
+    console.error('❌ Error al iniciar:', e)
   }
 }
 
