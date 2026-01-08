@@ -13,7 +13,7 @@ export default {
     const displayName = user?.name || mentionText
 
     const saludo =
-      `> *¡ʜᴏʟᴀ!* ${mentionText}, ¿cómo está tu día?\n` +
+      `*¡ʜᴏʟᴀ!* ${mentionText}, ¿cómo está tu día?\n` +
       `mucho gusto, mi nombre es *${name}*\n\n`
 
     const seen = new Set()
@@ -62,3 +62,4 @@ ${list}`
     )
   }
 }
+
