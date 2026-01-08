@@ -15,9 +15,9 @@ export default {
 
     const { type } = getBotType(sock)
     const botTypeLabel =
-      type === 'main' ? 'Principal' :
-      type === 'sub' ? 'Sub-Bot' :
-      'Desconocido'
+      type === 'main' ? '🤖 Principal' :
+      type === 'sub' ? '🧩 Sub-Bot' :
+      '❓ Desconocido'
 
     const saludo =
       `> *¡ʜᴏʟᴀ!* ${mention}, ¿cómo está tu día?\n` +
