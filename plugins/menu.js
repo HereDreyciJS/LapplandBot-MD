@@ -14,13 +14,16 @@ export default {
     const displayName = user?.name || mention
 
     const { type } = getBotType(sock)
+
     const botTypeLabel =
-      type === 'main' ? '🤖 Principal' :
-      type === 'sub' ? '🧩 Sub-Bot' :
-      '❓ Desconocido'
+      type === 'main'
+        ? 'Principal ⟡'
+        : type === 'sub'
+        ? 'Sub-Bot ⟢'
+        : 'Desconocido ◇'
 
     const saludo =
-      `> *¡ʜᴏʟᴀ!* ${mention}, ¿cómo está tu día?\n` +
+      `*¡ʜᴏʟᴀ!* ${mention}\n` +
       `mucho gusto, mi nombre es *${name}*\n\n`
 
     const seen = new Set()
@@ -31,8 +34,8 @@ export default {
         const cmd = Array.isArray(p.command) ? p.command[0] : p.command
         if (seen.has(cmd)) return null
         seen.add(cmd)
-        const title = `✿ *${prefix}${cmd}*`
-        const desc = p.description ? `\n> ${p.description}` : ''
+        const title = `┊ ${prefix}${cmd}`
+        const desc = p.description ? `\n  └ ${p.description}` : ''
         return `${title}${desc}`
       })
       .filter(Boolean)
@@ -42,10 +45,10 @@ export default {
 
     const text =
 `${saludo}` +
-`┏━ *Info* ━⊜
-┃⋄ *Uptime* :: ${uptime}
-┃⋄ *Tipo* :: ${botTypeLabel}
-┗━━◘
+`┏━ Info ━┓
+┃ Uptime :: ${uptime}
+┃ Tipo   :: ${botTypeLabel}
+┗━━━━━━━┛
 
 ${list}`
 
