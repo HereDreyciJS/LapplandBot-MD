@@ -20,6 +20,10 @@ const start = async () => {
     await loadPlugins()
     sock = await startConnection()
 
+      if (!global.conn || !global.conn.user) {
+      global.conn = sock
+    }
+
     setupWelcome(sock)
 
     sock.ev.on('connection.update', (update) => {
@@ -63,5 +67,3 @@ process.on('uncaughtException', console.error)
 process.on('unhandledRejection', console.error)
 
 start()
-
-
