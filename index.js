@@ -20,9 +20,16 @@ const start = async () => {
     await loadPlugins()
     sock = await startConnection()
 
-      if (!global.conn || !global.conn.user) {
-      global.conn = sock
+    if (!global.mainBot) {
+      global.mainBot = sock
+      sock.isMainBot = true
+      sock.isSubBot = false
+    } else {
+      sock.isMainBot = false
+      sock.isSubBot = true
     }
+
+    global.conn = sock
 
     setupWelcome(sock)
 
@@ -31,7 +38,11 @@ const start = async () => {
 
       if (connection === 'open') {
         reconnecting = false
-        console.log('✅ Bot conectado')
+        console.log(
+          sock.isMainBot
+            ? '✅ Bot ORIGINAL conectado'
+            : '🟡 Sub-bot conectado'
+        )
       }
 
       if (connection === 'close' && !reconnecting) {
