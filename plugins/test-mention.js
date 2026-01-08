@@ -2,17 +2,12 @@ export default {
   command: ['testmention'],
   execute: async ({ sock, m }) => {
     const jid = m.key.participant || m.key.remoteJid
-    const user = global.db.getUser(jid)
-
-    const numberTag = `@${jid.split('@')[0]}`
-    const name = user?.name || numberTag
-
-    const text = `Hola ${numberTag}, esta es una prueba de mención.`
+    const tag = `@${jid.split('@')[0]}`
 
     await sock.sendMessage(
       m.key.remoteJid,
       {
-        text: text.replace(numberTag, name),
+        text: `Hola ${tag}, esta es una prueba de mención.`,
         mentions: [jid]
       },
       { quoted: m }
