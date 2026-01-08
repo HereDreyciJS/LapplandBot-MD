@@ -1,4 +1,4 @@
-import print from './lib/print.js'
+import print from './lib/utils/print.js'
 
 export const handler = async (sock, msg) => {
   try {
