@@ -3,18 +3,18 @@ import { getUptime } from '../lib/utils/uptime.js'
 export default {
   command: ['menu', 'help'],
   hidden: true,
-  execute: async ({ sock, m }) => {
+
+  execute: async ({ sock, m, user }) => {
     const { bot } = global.settings
     const { name, prefix, image, newsletter } = bot
 
-    const senderName =
-      m.pushName ||
-      m.key.participant?.split('@')[0] ||
-      m.key.remoteJid.split('@')[0]
+    const jid = m.key.participant || m.key.remoteJid
+    const mentionText = `@${jid.split('@')[0]}`
+    const displayName = user?.name || mentionText
 
     const saludo =
-      `> *¡ʜᴏʟᴀ!* ${senderName}, ¿cómo está tu día?, ` +
-      `mucho gusto mi nombre es *${name}*\n\n`
+      `> *¡ʜᴏʟᴀ!* ${mentionText}, ¿cómo está tu día?\n` +
+      `mucho gusto, mi nombre es *${name}*\n\n`
 
     const seen = new Set()
 
@@ -48,6 +48,7 @@ ${list}`
       {
         image: image ? { url: image } : undefined,
         caption: text,
+        mentions: [jid],
         contextInfo: {
           isForwarded: true,
           forwardedNewsletterMessageInfo: {
