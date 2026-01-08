@@ -1,8 +1,7 @@
 import print from './lib/print.js'
 
-export const handler = async (sock, m) => {
+export const handler = async (sock, msg) => {
   try {
-    const msg = m.messages?.[0]
     if (!msg || !msg.message) return
     if (msg.key.remoteJid === 'status@broadcast') return
 
@@ -46,7 +45,7 @@ export const handler = async (sock, m) => {
 
     if (isGroup) {
       const chat = global.db.getChat(msg.key.remoteJid)
-      if (chat.socketOnly && !isBot && !isOwner) return
+      if (chat?.socketOnly && !isBot && !isOwner) return
     }
 
     const plugin = global.plugins.get(command)
@@ -81,6 +80,6 @@ export const handler = async (sock, m) => {
       pushName: msg.pushName
     })
   } catch (e) {
-    console.error('Error en Handler:', e)
+    console.error('❌ Error en handler:', e)
   }
 }
