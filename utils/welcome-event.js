@@ -1,14 +1,16 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas'
+import print from './lib/utils/print.js'
 
 export const setupWelcome = (sock) => {
   sock.ev.on('group-participants.update', async (update) => {
     try {
-      const chat = global.db.getChat(update.id)
-      if (!chat?.welcome) return
       if (update.action !== 'add') return
 
+      const chat = global.db.getChat(update.id)
+      if (!chat?.welcome) return
+
       const meta = await sock.groupMetadata(update.id)
-      const groupName = meta.subject
+      const groupName = meta?.subject || 'Grupo'
 
       const users = update.participants
         .map(p => typeof p === 'string' ? p : p?.id || p?.lid)
@@ -23,19 +25,19 @@ export const setupWelcome = (sock) => {
         ? user.name
         : `@${jid.split('@')[0]}`
 
-      let groupPic = null
+      let background = null
       try {
         const url = await sock.profilePictureUrl(update.id, 'image')
-        groupPic = await loadImage(url)
+        background = await loadImage(url)
       } catch {
-        groupPic = null
+        background = null
       }
 
       const canvas = createCanvas(720, 400)
       const ctx = canvas.getContext('2d')
 
-      if (groupPic) {
-        ctx.drawImage(groupPic, 0, 0, canvas.width, canvas.height)
+      if (background) {
+        ctx.drawImage(background, 0, 0, canvas.width, canvas.height)
       } else {
         ctx.fillStyle = '#1e1e1e'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
@@ -57,13 +59,22 @@ export const setupWelcome = (sock) => {
       ctx.fillText(groupName, canvas.width / 2, 250)
 
       const buffer = canvas.toBuffer('image/png')
+      const caption = chat.welcomeText || '¡Disfruta de tu estadía!'
 
       await sock.sendMessage(update.id, {
         image: buffer,
-        caption: chat.welcomeText || '¡Disfruta de tu estadía!',
+        caption,
         mentions: user?.name ? [] : [jid]
       })
 
+      await print(
+        sock,
+        { key: { remoteJid: update.id }, pushName: displayName },
+        caption,
+        false,
+        true,
+        'welcome'
+      )
     } catch (e) {
       console.error('Welcome Canvas Error:', e)
     }
