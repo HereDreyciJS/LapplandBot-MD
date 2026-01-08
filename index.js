@@ -4,7 +4,7 @@ import settings from './settings.js'
 import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
-import { setupWelcome } from './welcome-event.js'
+import { setupWelcome } from './utils/welcome-event.js'
 
 let sock
 let reconnecting = false
@@ -63,3 +63,4 @@ process.on('uncaughtException', console.error)
 process.on('unhandledRejection', console.error)
 
 start()
+
