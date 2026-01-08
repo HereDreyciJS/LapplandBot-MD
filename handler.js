@@ -84,7 +84,7 @@ export const handler = async (sock, msg) => {
       isGroup,
       isOwner,
       isAdmin,
-      pushName: msg.pushName
+      user
     })
   } catch (e) {
     console.error('❌ Error en handler:', e)
