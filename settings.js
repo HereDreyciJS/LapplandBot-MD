@@ -12,7 +12,12 @@ const settings = {
       '44981293158503'
     ],
 
-   image: 'https://files.catbox.moe/t1e8hp.jpeg',
+    
+    mods: [
+      ''
+    ],
+
+    image: 'https://files.catbox.moe/t1e8hp.jpeg',
 
     newsletter: {
       jid: '120363392571425662@newsletter',
