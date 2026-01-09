@@ -12,11 +12,7 @@ const settings = {
       '44981293158503'
     ],
 
-    staffGroups: [
-      '120363422647651943@g.us'
-    ],
-
-    image: 'https://files.catbox.moe/t1e8hp.jpeg',
+   image: 'https://files.catbox.moe/t1e8hp.jpeg',
 
     newsletter: {
       jid: '120363392571425662@newsletter',
