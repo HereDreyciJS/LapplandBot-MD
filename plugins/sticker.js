@@ -24,7 +24,7 @@ function runFfmpeg(args) {
 
 export default {
   command: ['s', 'sticker', 'stiker', 'wm', 'take'],
-  execute: async ({ sock, m, args, pushName }) => {
+  execute: async ({ sock, m, args, user }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
       const message = normalizeMessageContent(quoted ?? m.message)
@@ -39,14 +39,14 @@ export default {
       }
 
       let pack = 'Lappland Bot'
-      let author = pushName || 'User'
+      let author = user?.name || 'User'
 
-      if (args.length > 0) {
+      if (args.length) {
         const str = args.join(' ')
         if (str.includes('|')) {
           const [p, a] = str.split('|')
-          pack = p.trim()
-          author = a.trim()
+          pack = p.trim() || pack
+          author = a.trim() || author
         } else {
           pack = str.trim()
         }
@@ -54,8 +54,11 @@ export default {
 
       const stream = await downloadContentFromMessage(
         message[type],
-        type === 'imageMessage' ? 'image' :
-        type === 'videoMessage' ? 'video' : 'sticker'
+        type === 'imageMessage'
+          ? 'image'
+          : type === 'videoMessage'
+          ? 'video'
+          : 'sticker'
       )
 
       let buffer = Buffer.alloc(0)
@@ -64,13 +67,12 @@ export default {
       let finalBuffer
 
       if (type === 'stickerMessage') {
-        const sticker = new Sticker(buffer, {
+        finalBuffer = await new Sticker(buffer, {
           pack,
           author,
           type: 'default',
           quality: 100
-        })
-        finalBuffer = await sticker.toBuffer()
+        }).toBuffer()
       } else {
         const input = path.join(tmpdir(), `${Date.now()}.${type === 'imageMessage' ? 'png' : 'mp4'}`)
         const output = path.join(tmpdir(), `${Date.now()}.webp`)
@@ -99,16 +101,15 @@ export default {
           ])
         }
 
-        const sticker = new Sticker(fs.readFileSync(output), {
+        finalBuffer = await new Sticker(fs.readFileSync(output), {
           pack,
           author,
           type: 'default',
           quality: 100
-        })
-        finalBuffer = await sticker.toBuffer()
+        }).toBuffer()
 
-        if (fs.existsSync(input)) fs.unlinkSync(input)
-        if (fs.existsSync(output)) fs.unlinkSync(output)
+        fs.existsSync(input) && fs.unlinkSync(input)
+        fs.existsSync(output) && fs.unlinkSync(output)
       }
 
       await sock.sendMessage(
@@ -121,7 +122,7 @@ export default {
       console.error(e)
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: `❌ Error al crear el sticker.` },
+        { text: '❌ Error al crear el sticker.' },
         { quoted: m }
       )
     }
