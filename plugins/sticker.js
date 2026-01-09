@@ -12,6 +12,8 @@ import fs from 'fs'
 import path from 'path'
 import { tmpdir } from 'os'
 
+import print from '../lib/utils/print.js'
+
 function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
     const p = spawn(ffmpeg, args)
@@ -24,7 +26,8 @@ function runFfmpeg(args) {
 
 export default {
   command: ['s', 'sticker', 'stiker', 'wm', 'take'],
-  execute: async ({ sock, m, args, user }) => {
+
+  execute: async ({ sock, m, args, pushName }) => {
     try {
       const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
       const message = normalizeMessageContent(quoted ?? m.message)
@@ -39,14 +42,14 @@ export default {
       }
 
       let pack = 'Lappland Bot'
-      let author = user?.name || 'User'
+      let author = pushName || 'User'
 
-      if (args.length) {
+      if (args.length > 0) {
         const str = args.join(' ')
         if (str.includes('|')) {
           const [p, a] = str.split('|')
-          pack = p.trim() || pack
-          author = a.trim() || author
+          pack = p.trim()
+          author = a.trim()
         } else {
           pack = str.trim()
         }
@@ -62,17 +65,20 @@ export default {
       )
 
       let buffer = Buffer.alloc(0)
-      for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
+      for await (const chunk of stream) {
+        buffer = Buffer.concat([buffer, chunk])
+      }
 
       let finalBuffer
 
       if (type === 'stickerMessage') {
-        finalBuffer = await new Sticker(buffer, {
+        const sticker = new Sticker(buffer, {
           pack,
           author,
           type: 'default',
           quality: 100
-        }).toBuffer()
+        })
+        finalBuffer = await sticker.toBuffer()
       } else {
         const input = path.join(tmpdir(), `${Date.now()}.${type === 'imageMessage' ? 'png' : 'mp4'}`)
         const output = path.join(tmpdir(), `${Date.now()}.webp`)
@@ -92,7 +98,7 @@ export default {
             '-i', input,
             '-vf',
             'scale=512:512:force_original_aspect_ratio=decrease,' +
-            'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,fps=15',
+              'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,fps=15',
             '-vcodec', 'libwebp',
             '-loop', '0',
             '-t', '6',
@@ -101,21 +107,32 @@ export default {
           ])
         }
 
-        finalBuffer = await new Sticker(fs.readFileSync(output), {
+        const sticker = new Sticker(fs.readFileSync(output), {
           pack,
           author,
           type: 'default',
           quality: 100
-        }).toBuffer()
+        })
+        finalBuffer = await sticker.toBuffer()
 
-        fs.existsSync(input) && fs.unlinkSync(input)
-        fs.existsSync(output) && fs.unlinkSync(output)
+        if (fs.existsSync(input)) fs.unlinkSync(input)
+        if (fs.existsSync(output)) fs.unlinkSync(output)
       }
 
       await sock.sendMessage(
         m.key.remoteJid,
         { sticker: finalBuffer },
         { quoted: m }
+      )
+
+      
+      await print(
+        sock,
+        m,
+        '[Sticker generado]',
+        true,
+        m.key.remoteJid.endsWith('@g.us'),
+        'sticker'
       )
 
     } catch (e) {
