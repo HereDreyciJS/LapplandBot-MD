@@ -9,7 +9,15 @@ Este bot se encuentra en un estado **estable**, funcional y en mantenimiento act
 
 - 📦 **Baileys (oficial)**
 - 📌 Versión: **^7.0.0-rc.9**
-- 🔒 WhatsApp Multi-Device
+
+<p align="center">
+  <a href="https://github.com/WhiskeySockets/Baileys">
+    <img src="https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/Media/logo.png" width="180" alt="Baileys WhatsApp MD"/>
+  </a>
+</p>
+
+- 🔒 WhatsApp Multi-Device  
+- 🔗 Repositorio: https://github.com/WhiskeySockets/Baileys
 
 ---
 
