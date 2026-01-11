@@ -73,7 +73,7 @@ async function gifToMp4(gifBuffer) {
 
 async function fetchTenorGif(action) {
   const apiKey = 'LIVDSRZULELA'
-  const url = `https://g.tenor.com/v1/search?q=${action}&key=${apiKey}&limit=20&media_filter=minimal`
+  const url = `https://g.tenor.com/v1/search?q=anime+${action}&key=${apiKey}&limit=20&media_filter=minimal`
   const res = await fetch(url)
   const data = await res.json()
   if (!data?.results || !data.results.length) return null
@@ -96,14 +96,14 @@ export default {
       if (ctx?.mentionedJid?.length) targetJid = ctx.mentionedJid[0]
       else if (ctx?.quotedMessage) targetJid = ctx.participant
 
-      let caption = ''
       const mentionsArray = [sender]
 
+      let caption = ''
       if (targetJid && targetJid !== sender) {
         mentionsArray.push(targetJid)
-        caption = `*${senderName}* ${actionPhrases[command]} *@${targetJid.split('@')[0]}*`
+        caption = `*@${sender.split('@')[0]}* ${actionPhrases[command]} *@${targetJid.split('@')[0]}*`
       } else {
-        caption = `*${senderName}* ${selfPhrases[command] || 'realizó la acción a sí mismo/a'}`
+        caption = `*@${sender.split('@')[0]}* ${selfPhrases[command] || 'realizó la acción a sí mismo/a'}`
       }
 
       const gifBuffer = await fetchTenorGif(command)
