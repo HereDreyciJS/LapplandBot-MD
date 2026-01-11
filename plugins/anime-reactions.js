@@ -28,22 +28,6 @@ const actionPhrases = {
   dance: 'bailó con'
 }
 
-async function gifToMp4(gifBuffer) {
-  const id = crypto.randomBytes(8).toString('hex')
-  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
-  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
-  await writeFile(inPath, gifBuffer)
-  await new Promise((resolve, reject) => {
-    ffmpeg(inPath)
-      .outputOptions(['-movflags faststart', '-pix_fmt yuv420p', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'])
-      .noAudio().save(outPath).on('end', resolve).on('error', reject)
-  })
-  const mp4Buffer = await readFile(outPath)
-  await rm(inPath).catch(() => {})
-  await rm(outPath).catch(() => {})
-  return mp4Buffer
-}
-
 const selfPhrases = {
   hug: 'abraza su almohada fuertemente',
   kiss: 'practica a darse besitos con el espejo',
@@ -64,18 +48,45 @@ const selfPhrases = {
   dance: 'da pasos de baile'
 }
 
+async function gifToMp4(gifBuffer) {
+  const id = crypto.randomBytes(8).toString('hex')
+  const inPath = path.join(os.tmpdir(), `waifu_${id}.gif`)
+  const outPath = path.join(os.tmpdir(), `waifu_${id}.mp4`)
+  await writeFile(inPath, gifBuffer)
+  await new Promise((resolve, reject) => {
+    ffmpeg(inPath)
+      .outputOptions([
+        '-movflags faststart',
+        '-pix_fmt yuv420p',
+        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
+      ])
+      .noAudio()
+      .save(outPath)
+      .on('end', resolve)
+      .on('error', reject)
+  })
+  const mp4Buffer = await readFile(outPath)
+  await rm(inPath).catch(() => {})
+  await rm(outPath).catch(() => {})
+  return mp4Buffer
+}
+
+async function fetchTenorGif(action) {
+  const apiKey = 'LIVDSRZULELA'
+  const url = `https://g.tenor.com/v1/search?q=${action}&key=${apiKey}&limit=20&media_filter=minimal`
+  const res = await fetch(url)
+  const data = await res.json()
+  if (!data?.results || !data.results.length) return null
+  const gifUrl = data.results[Math.floor(Math.random() * data.results.length)]
+    .media[0].gif.url
+  const gifRes = await fetch(gifUrl)
+  return Buffer.from(await gifRes.arrayBuffer())
+}
+
 export default {
   command: Object.keys(actionPhrases),
   execute: async ({ sock, m, command, pushName }) => {
     try {
-      const res = await fetch(`https://api.waifu.pics/sfw/${command}`)
-      const json = await res.json()
-      if (!json?.url) return
-
-      const gifRes = await fetch(json.url)
-      const gifBuffer = Buffer.from(await gifRes.arrayBuffer())
-      const mp4Buffer = await gifToMp4(gifBuffer)
-
       const sender = m.key.participant || m.key.remoteJid
       const senderName = pushName || 'Alguien'
 
@@ -89,11 +100,16 @@ export default {
       const mentionsArray = [sender]
 
       if (targetJid && targetJid !== sender) {
-        caption = `*${senderName}* ${actionPhrases[command]} @${targetJid.split('@')[0]}`
         mentionsArray.push(targetJid)
+        caption = `*${senderName}* ${actionPhrases[command]} *@${targetJid.split('@')[0]}*`
       } else {
         caption = `*${senderName}* ${selfPhrases[command] || 'realizó la acción a sí mismo/a'}`
       }
+
+      const gifBuffer = await fetchTenorGif(command)
+      if (!gifBuffer) return
+
+      const mp4Buffer = await gifToMp4(gifBuffer)
 
       await sock.sendMessage(
         m.key.remoteJid,
