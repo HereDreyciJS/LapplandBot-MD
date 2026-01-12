@@ -8,9 +8,9 @@ export default {
   group: true,
   description: 'Descarga audios y videos de YouTube',
 
-  execute: async ({ sock, m, text, command, isGroup }) => {
+  execute: async ({ sock, m, text, command }) => {
     try {
-      if (!isGroup) return
+      if (!m.key.remoteJid.endsWith('@g.us')) return
 
       if (!text?.trim()) {
         return sock.sendMessage(
@@ -31,27 +31,42 @@ export default {
 
       const query = match ? `https://youtu.be/${match[1]}` : text
       const search = await yts(query)
+
       const video = match
-        ? search.videos.find(v => v.videoId === match[1]) || search.videos[0]
-        : search.videos[0]
+        ? search.video || search.videos?.[0]
+        : search.videos?.[0]
 
       if (!video) throw 'ꕥ No se encontraron resultados.'
 
-      const { title, thumbnail, timestamp, views, ago, url, author, seconds } = video
-      if (seconds > 1800) throw '⚠ El contenido supera los 30 minutos.'
+      const {
+        title,
+        thumbnail,
+        timestamp,
+        views,
+        ago,
+        url,
+        author,
+        seconds
+      } = video
 
-      const info =
-`「✦」Descargando *<${title}>*
+      if (seconds && seconds > 1800) {
+        throw '⚠ El contenido supera los 30 minutos.'
+      }
+
+      const info = `「✦」Descargando *<${title}>*
 
 > ❑ Canal » *${author?.name || 'Desconocido'}*
 > ♡ Vistas » *${formatViews(views)}*
-> ✧︎ Duración » *${timestamp}*
-> ☁︎ Publicado » *${ago}*
+> ✧︎ Duración » *${timestamp || 'No disponible'}*
+> ☁︎ Publicado » *${ago || 'Desconocido'}*
 > ➪ Link » ${url}`
 
       await sock.sendMessage(
         m.key.remoteJid,
-        { image: { url: thumbnail }, caption: info },
+        {
+          image: thumbnail,
+          caption: info
+        },
         { quoted: m }
       )
 
@@ -61,16 +76,10 @@ export default {
 
         await sock.sendMessage(
           m.key.remoteJid,
-          { text: `> ❀ Audio listo\n> Servidor » ${audio.api}` },
-          { quoted: m }
-        )
-
-        await sock.sendMessage(
-          m.key.remoteJid,
           {
-            audio: { url: audio.url },
-            fileName: `${title}.mp3`,
-            mimetype: 'audio/mpeg'
+            audio: audio.url,
+            mimetype: 'audio/mpeg',
+            fileName: `${title}.mp3`
           },
           { quoted: m }
         )
@@ -80,14 +89,8 @@ export default {
 
         await sock.sendMessage(
           m.key.remoteJid,
-          { text: `> ❀ Video listo\n> Servidor » ${videoDl.api}` },
-          { quoted: m }
-        )
-
-        await sock.sendMessage(
-          m.key.remoteJid,
           {
-            video: { url: videoDl.url },
+            video: videoDl.url,
             caption: `> ❀ ${title}`
           },
           { quoted: m }
@@ -104,6 +107,7 @@ export default {
         m.key.remoteJid,
         { react: { text: '✖️', key: m.key } }
       )
+
       await sock.sendMessage(
         m.key.remoteJid,
         { text: typeof e === 'string' ? e : '⚠ Error al procesar.' },
@@ -136,6 +140,7 @@ async function getAud(url) {
       extractor: r => r.result?.download?.url
     }
   ]
+
   return fetchFromApis(apis)
 }
 
@@ -157,6 +162,7 @@ async function getVid(url) {
       extractor: r => r.result?.download?.url
     }
   ]
+
   return fetchFromApis(apis)
 }
 
@@ -164,14 +170,20 @@ async function fetchFromApis(apis) {
   for (const { api, endpoint, extractor } of apis) {
     try {
       const controller = new AbortController()
-      const t = setTimeout(() => controller.abort(), 10000)
-      const res = await fetch(endpoint, { signal: controller.signal }).then(r => r.json())
-      clearTimeout(t)
+      const timeout = setTimeout(() => controller.abort(), 10000)
+
+      const res = await fetch(endpoint, { signal: controller.signal })
+        .then(r => r.json())
+
+      clearTimeout(timeout)
+
       const link = extractor(res)
       if (link) return { url: link, api }
     } catch {}
+
     await new Promise(r => setTimeout(r, 500))
   }
+
   return null
 }
 
