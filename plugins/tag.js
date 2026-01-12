@@ -8,7 +8,6 @@ export default {
       const groupMetadata = await sock.groupMetadata(m.key.remoteJid)
       const participants = groupMetadata.participants
       const admins = participants.filter(p => p.admin !== null).map(p => p.id)
-      const isBotAdmin = admins.includes(sock.user.id.split(':')[0] + '@s.whatsapp.net')
       const isUserAdmin = admins.includes(m.key.participant || m.key.remoteJid)
 
       if (!isUserAdmin) {
@@ -22,21 +21,40 @@ export default {
       const mentions = participants.map(p => p.id)
       const textTag = args.length > 0 ? args.join(' ') : 'ATENCIÓN A TODOS 📢'
 
-      const quotedMsg = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
+      const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
 
-      if (quotedMsg) {
-        await sock.sendMessage(
-          m.key.remoteJid,
-          { ...quotedMsg, mentions: mentions },
-          { quoted: m }
-        )
+      if (quoted) {
+        let msg = {}
+
+        if (quoted.conversation) {
+          msg = { text: quoted.conversation, mentions }
+        } else if (quoted.imageMessage) {
+          msg = { 
+            image: { url: 'https://wa.me/' },
+            caption: quoted.imageMessage.caption || textTag,
+            mentions
+          }
+        } else if (quoted.videoMessage) {
+          msg = { 
+            video: { url: 'https://wa.me/' }, 
+            caption: quoted.videoMessage.caption || textTag,
+            mentions
+          }
+        } else if (quoted.stickerMessage) {
+          msg = { 
+            sticker: quoted.stickerMessage, 
+            mentions
+          }
+        } else {
+          msg = { text: textTag, mentions }
+        }
+
+        await sock.sendMessage(m.key.remoteJid, msg, { quoted: m })
+
       } else {
         await sock.sendMessage(
           m.key.remoteJid,
-          {
-            text: textTag,
-            mentions: mentions
-          },
+          { text: textTag, mentions },
           { quoted: m }
         )
       }
