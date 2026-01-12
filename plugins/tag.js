@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   command: ['tag', 'tagall', 'todos'],
   description: 'Menciona a todos de forma invisible (Solo Admins) y responde a un mensaje',
   execute: async ({ sock, m, args }) => {
