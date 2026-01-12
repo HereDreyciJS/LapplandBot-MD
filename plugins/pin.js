@@ -14,7 +14,7 @@ export default {
       }
 
       const query = args.join(' ')
-      const url = `https://pinterest.downloaderapi.com/api/search?query=${encodeURIComponent(query)}`
+      const url = `https://pinscrapper.vercel.app/api/pinterest/search?q=cats&limit=3`
 
       const res = await fetch(url)
       const data = await res.json()
