@@ -1,52 +1,48 @@
-import fetch from "node-fetch"
+import fetch from 'node-fetch'
 
 export default {
-  command: ["pin", "pinterest"],
-  description: "Busca imágenes en Pinterest",
-
-  execute: async ({ sock, m, args, command, prefix, isGroup }) => {
+  command: ['pin', 'pinterest'],
+  description: 'Busca imágenes aleatorias en Pinterest',
+  execute: async ({ sock, m, args }) => {
     try {
       if (!args.length) {
         return sock.sendMessage(
-          m.chat,
-          { text: `📌 Usa: ${prefix + command} <búsqueda>` },
+          m.key.remoteJid,
+          { text: '❌ Escribe una palabra para buscar en Pinterest.' },
           { quoted: m }
         )
       }
 
-      const query = args.join(" ")
-      const url = `https://api.ryzendesu.vip/api/pinterest?query=${encodeURIComponent(query)}`
+      const query = args.join(' ')
+      const url = `https://pinterest.downloaderapi.com/api/search?query=${encodeURIComponent(query)}`
 
-      const res = await fetch(url, { timeout: 10000 })
+      const res = await fetch(url)
+      const data = await res.json()
 
-      const contentType = res.headers.get("content-type") || ""
-      if (!contentType.includes("application/json")) {
-        throw new Error("Respuesta no válida")
+      if (!data?.images || !data.images.length) {
+        return sock.sendMessage(
+          m.key.remoteJid,
+          { text: '❌ No se encontraron imágenes.' },
+          { quoted: m }
+        )
       }
 
-      const json = await res.json()
-
-      if (!json.status || !Array.isArray(json.result) || json.result.length === 0) {
-        throw new Error("Sin resultados")
-      }
-
-      const image = json.result[Math.floor(Math.random() * json.result.length)]
+      const imageUrl = data.images[Math.floor(Math.random() * data.images.length)]
 
       await sock.sendMessage(
-        m.chat,
+        m.key.remoteJid,
         {
-          image: { url: image },
-          caption: `📌 *Pinterest*\n🔎 ${query}`
+          image: { url: imageUrl },
+          caption: `📌 Resultado de Pinterest\n🔎 ${query}`
         },
         { quoted: m }
       )
 
-    } catch (err) {
-      console.error("[PIN ERROR]", err)
-
+    } catch (e) {
+      console.error('Error Pinterest:', e)
       await sock.sendMessage(
-        m.chat,
-        { text: "❌ Pinterest no respondió correctamente, intenta otra vez" },
+        m.key.remoteJid,
+        { text: '❌ Ocurrió un error al buscar en Pinterest.' },
         { quoted: m }
       )
     }
