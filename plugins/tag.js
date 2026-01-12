@@ -1,3 +1,8 @@
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import fetch from 'node-fetch'
+
 export default {
   command: ['tag', 'tagall', 'todos'],
   description: 'Menciona a todos de forma invisible (Solo Admins) y responde a un mensaje',
@@ -29,20 +34,33 @@ export default {
         if (quoted.conversation) {
           msg = { text: quoted.conversation, mentions }
         } else if (quoted.imageMessage) {
-          msg = { 
-            image: { url: 'https://wa.me/' },
-            caption: quoted.imageMessage.caption || textTag,
+          const buffer = await sock.downloadMediaMessage({ message: { imageMessage: quoted.imageMessage } })
+          msg = {
+            image: buffer,
+            caption: quoted.imageMessage.caption || undefined,
             mentions
           }
         } else if (quoted.videoMessage) {
-          msg = { 
-            video: { url: 'https://wa.me/' }, 
-            caption: quoted.videoMessage.caption || textTag,
+          const buffer = await sock.downloadMediaMessage({ message: { videoMessage: quoted.videoMessage } })
+          msg = {
+            video: buffer,
+            caption: quoted.videoMessage.caption || undefined,
+            mimetype: quoted.videoMessage.mimetype,
+            gifPlayback: quoted.videoMessage.gifPlayback || false,
             mentions
           }
         } else if (quoted.stickerMessage) {
-          msg = { 
-            sticker: quoted.stickerMessage, 
+          const buffer = await sock.downloadMediaMessage({ message: { stickerMessage: quoted.stickerMessage } })
+          msg = {
+            sticker: buffer,
+            mentions
+          }
+        } else if (quoted.documentMessage) {
+          const buffer = await sock.downloadMediaMessage({ message: { documentMessage: quoted.documentMessage } })
+          msg = {
+            document: buffer,
+            fileName: quoted.documentMessage.fileName || 'file',
+            mimetype: quoted.documentMessage.mimetype,
             mentions
           }
         } else {
@@ -50,7 +68,6 @@ export default {
         }
 
         await sock.sendMessage(m.key.remoteJid, msg, { quoted: m })
-
       } else {
         await sock.sendMessage(
           m.key.remoteJid,
@@ -58,7 +75,6 @@ export default {
           { quoted: m }
         )
       }
-
     } catch (e) {
       console.error('Error en Tagall invisible:', e)
     }
