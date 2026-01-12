@@ -1,7 +1,15 @@
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
-import fetch from 'node-fetch'
+import { downloadContentFromMessage, proto } from '@whiskeysockets/baileys'
+import { Buffer } from 'buffer'
+
+async function downloadMedia(message) {
+  const type = Object.keys(message)[0]
+  const stream = await downloadContentFromMessage(message[type], type.replace('Message','').toLowerCase())
+  let buffer = Buffer.from([])
+  for await (const chunk of stream) {
+    buffer = Buffer.concat([buffer, chunk])
+  }
+  return buffer
+}
 
 export default {
   command: ['tag', 'tagall', 'todos'],
@@ -33,35 +41,17 @@ export default {
 
         if (quoted.conversation) {
           msg = { text: quoted.conversation, mentions }
-        } else if (quoted.imageMessage) {
-          const buffer = await sock.downloadMediaMessage({ message: { imageMessage: quoted.imageMessage } })
-          msg = {
-            image: buffer,
-            caption: quoted.imageMessage.caption || undefined,
-            mentions
-          }
-        } else if (quoted.videoMessage) {
-          const buffer = await sock.downloadMediaMessage({ message: { videoMessage: quoted.videoMessage } })
-          msg = {
-            video: buffer,
-            caption: quoted.videoMessage.caption || undefined,
-            mimetype: quoted.videoMessage.mimetype,
-            gifPlayback: quoted.videoMessage.gifPlayback || false,
-            mentions
-          }
-        } else if (quoted.stickerMessage) {
-          const buffer = await sock.downloadMediaMessage({ message: { stickerMessage: quoted.stickerMessage } })
-          msg = {
-            sticker: buffer,
-            mentions
-          }
-        } else if (quoted.documentMessage) {
-          const buffer = await sock.downloadMediaMessage({ message: { documentMessage: quoted.documentMessage } })
-          msg = {
-            document: buffer,
-            fileName: quoted.documentMessage.fileName || 'file',
-            mimetype: quoted.documentMessage.mimetype,
-            mentions
+        } else if (quoted.imageMessage || quoted.videoMessage || quoted.stickerMessage || quoted.documentMessage) {
+          const typeKey = Object.keys(quoted)[0]
+          const buffer = await downloadMedia(quoted)
+          if (typeKey === 'imageMessage') {
+            msg = { image: buffer, caption: quoted.imageMessage.caption || undefined, mentions }
+          } else if (typeKey === 'videoMessage') {
+            msg = { video: buffer, caption: quoted.videoMessage.caption || undefined, mimetype: quoted.videoMessage.mimetype, gifPlayback: quoted.videoMessage.gifPlayback || false, mentions }
+          } else if (typeKey === 'stickerMessage') {
+            msg = { sticker: buffer, mentions }
+          } else if (typeKey === 'documentMessage') {
+            msg = { document: buffer, fileName: quoted.documentMessage.fileName || 'file', mimetype: quoted.documentMessage.mimetype, mentions }
           }
         } else {
           msg = { text: textTag, mentions }
