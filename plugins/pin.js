@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 export default {
   command: ['pin', 'pinterest'],
-  description: 'Busca imágenes aleatorias en Pinterest',
+  description: 'Busca imágenes aleatorias de Pinterest',
   execute: async ({ sock, m, args }) => {
     try {
       if (!args.length) {
@@ -14,12 +14,12 @@ export default {
       }
 
       const query = args.join(' ')
-      const url = `https://pinscrapper.vercel.app/api/pinterest/search?q=cats&limit=3`
+      const url = `https://pinscrapper.vercel.app/api/pinterest/search?q=${encodeURIComponent(query)}&limit=10`
 
       const res = await fetch(url)
-      const data = await res.json()
+      const json = await res.json()
 
-      if (!data?.images || !data.images.length) {
+      if (!json?.results?.length) {
         return sock.sendMessage(
           m.key.remoteJid,
           { text: '❌ No se encontraron imágenes.' },
@@ -27,13 +27,22 @@ export default {
         )
       }
 
-      const imageUrl = data.images[Math.floor(Math.random() * data.images.length)]
+      const random = json.results[Math.floor(Math.random() * json.results.length)]
+      const imageUrl = random.url || random.image
+
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return sock.sendMessage(
+          m.key.remoteJid,
+          { text: '❌ Imagen inválida recibida.' },
+          { quoted: m }
+        )
+      }
 
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          image: { url: imageUrl },
-          caption: `📌 Resultado de Pinterest\n🔎 ${query}`
+          image: imageUrl,
+          caption: `📌 ${query}`
         },
         { quoted: m }
       )
@@ -42,7 +51,7 @@ export default {
       console.error('Error Pinterest:', e)
       await sock.sendMessage(
         m.key.remoteJid,
-        { text: '❌ Ocurrió un error al buscar en Pinterest.' },
+        { text: '❌ Error al buscar en Pinterest.' },
         { quoted: m }
       )
     }
