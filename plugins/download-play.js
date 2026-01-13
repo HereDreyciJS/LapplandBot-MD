@@ -32,12 +32,9 @@ export default {
       const query = match ? `https://youtu.be/${match[1]}` : text
       const search = await yts(query)
 
-      if (!search.videos || !search.videos.length) {
-        throw 'ꕥ No se encontraron resultados.'
-      }
+      if (!search.videos || !search.videos.length) throw 'ꕥ No se encontraron resultados.'
 
       const video = search.videos[0]
-
       const { title, thumbnail, timestamp, views, ago, url, author, seconds } = video
 
       if (seconds > 1800) throw '⚠ El contenido supera los 30 minutos.'
@@ -118,59 +115,43 @@ export default {
 
 async function getAud(url) {
   const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r?.data?.url || r?.data?.download || r?.url
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r?.data?.download_url || r?.data?.url || r?.result?.url
-    },
-    {
-      api: 'Yupra',
-      endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r?.result?.link || r?.result?.url
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`,
-      extractor: r => r?.result?.download?.url || r?.result?.url
-    }
+    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}` },
+    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}` },
+    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}` },
+    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128` },
+    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/downloader/ytmp3?url=${encodeURIComponent(url)}` },
+    { api: 'XYRO', endpoint: `${APIs.xyro.url}/download/ytaudio?url=${encodeURIComponent(url)}` },
+    { api: 'Delirius', endpoint: `${APIs.delirius.url}/ytmp3?url=${encodeURIComponent(url)}` }
   ]
   return fetchFromApis(apis)
 }
 
 async function getVid(url) {
   const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r?.data?.url || r?.data?.download
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`,
-      extractor: r => r?.data?.download_url || r?.data?.url
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
-      extractor: r => r?.result?.download?.url || r?.result?.url
-    }
+    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}` },
+    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360` },
+    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360` },
+    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/downloader/ytmp4?url=${encodeURIComponent(url)}` },
+    { api: 'XYRO', endpoint: `${APIs.xyro.url}/download/ytvideo?url=${encodeURIComponent(url)}` },
+    { api: 'Delirius', endpoint: `${APIs.delirius.url}/ytmp4?url=${encodeURIComponent(url)}` },
+    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp4?url=${encodeURIComponent(url)}` }
   ]
   return fetchFromApis(apis)
 }
 
 async function fetchFromApis(apis) {
-  for (const { api, endpoint, extractor } of apis) {
+  for (const { api, endpoint } of apis) {
     try {
       const controller = new AbortController()
       const t = setTimeout(() => controller.abort(), 10000)
       const res = await fetch(endpoint, { signal: controller.signal }).then(r => r.json())
       clearTimeout(t)
-      const link = extractor(res)
+      const link =
+        res?.data?.url ||
+        res?.data?.download ||
+        res?.result?.link ||
+        res?.result?.download?.url ||
+        res?.url
       if (link) return { url: link, api }
     } catch {}
     await new Promise(r => setTimeout(r, 500))
