@@ -116,22 +116,22 @@ export default {
 async function getAud(url) {
   const apis = [
     {
-      api: 'Adonix',
+      api: 'adonix',
       endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
       extractor: r => r.data?.url
     },
     {
-      api: 'Zenzxz',
+      api: 'zenzxz',
       endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`,
       extractor: r => r.data?.download_url
     },
     {
-      api: 'Yupra',
+      api: 'yupra',
       endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
       extractor: r => r.result?.link
     },
     {
-      api: 'Vreden',
+      api: 'vreden',
       endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`,
       extractor: r => r.result?.download?.url
     }
@@ -142,17 +142,17 @@ async function getAud(url) {
 async function getVid(url) {
   const apis = [
     {
-      api: 'Adonix',
+      api: 'adonix',
       endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
       extractor: r => r.data?.url
     },
     {
-      api: 'Zenzxz',
+      api: 'zenzxz',
       endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`,
       extractor: r => r.data?.download_url
     },
     {
-      api: 'Vreden',
+      api: 'vreden',
       endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
       extractor: r => r.result?.download?.url
     }
