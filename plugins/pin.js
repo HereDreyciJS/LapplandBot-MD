@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 export default {
   command: ['pin', 'pinterest'],
   description: 'Busca imágenes aleatorias de Pinterest',
@@ -28,9 +26,9 @@ export default {
       }
 
       const random = json.results[Math.floor(Math.random() * json.results.length)]
-      const imageUrl = random.url || random.image
+      const imageUrl = random.url ?? random.image ?? random.mediaUrl ?? random.images?.[0]
 
-      if (!imageUrl || typeof imageUrl !== 'string') {
+      if (!imageUrl) {
         return sock.sendMessage(
           m.key.remoteJid,
           { text: '❌ Imagen inválida recibida.' },
@@ -41,7 +39,7 @@ export default {
       await sock.sendMessage(
         m.key.remoteJid,
         {
-          image: imageUrl,
+          image: { url: imageUrl },
           caption: `📌 ${query}`
         },
         { quoted: m }
