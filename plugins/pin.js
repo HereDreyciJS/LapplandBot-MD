@@ -1,10 +1,9 @@
-import fetch from 'node-fetch'
 import APIs from '../lib/apis.js'
 
 export default {
-  command: ['pin', 'pinterest', 'pins'],
+  command: ['pin','pinterest','pins'],
   category: 'busqueda',
-  description: 'Busca imágenes de Pinterest y las envía como álbum',
+  description: 'Busca imágenes de Pinterest y las envía en un álbum',
   group: true,
 
   execute: async ({ sock, m, text }) => {
@@ -32,19 +31,17 @@ export default {
 
       images = shuffleArray(images).slice(0, 10)
 
-      const mediaMessages = await Promise.all(images.map(async url => {
+      const messages = []
+      for (let url of images) {
         try {
-          const buffer = await fetch(url).then(res => res.arrayBuffer())
-          return { image: Buffer.from(buffer) }
-        } catch {
-          return null
-        }
-      }))
+          const buffer = Buffer.from(await fetch(url).then(res => res.arrayBuffer()))
+          messages.push({ image: buffer })
+        } catch {}
+      }
 
-      const filteredMedia = mediaMessages.filter(Boolean)
-      if (!filteredMedia.length) throw '❌ No se pudieron cargar las imágenes.'
+      if (!messages.length) throw '❌ No se pudieron cargar las imágenes.'
 
-      await sock.sendMessage(m.key.remoteJid, { media: filteredMedia }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { messages }, { quoted: m })
 
     } catch (e) {
       await sock.sendMessage(m.key.remoteJid, { text: typeof e === 'string' ? e : '⚠ Error al buscar imágenes.' }, { quoted: m })
