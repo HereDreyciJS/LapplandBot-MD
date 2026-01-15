@@ -1,57 +1,38 @@
+import fetch from 'node-fetch'
+import APIs from '../lib/apis.js'
+
 export default {
   command: ['pin', 'pinterest'],
-  description: 'Busca imágenes aleatorias de Pinterest',
-  execute: async ({ sock, m, args }) => {
+  category: 'descargas',
+  group: true,
+  description: 'Busca imágenes en Pinterest por palabra clave',
+
+  execute: async ({ sock, m, text, isGroup }) => {
     try {
-      if (!args.length) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ Escribe una palabra para buscar en Pinterest.' },
-          { quoted: m }
-        )
-      }
+      if (!isGroup) return
+      if (!text?.trim()) return sock.sendMessage(m.key.remoteJid, { text: '❀ Ingresa una palabra clave.' }, { quoted: m })
 
-      const query = args.join(' ')
-      const url = `https://pinscrapper.vercel.app/api/pinterest/search?q=${encodeURIComponent(query)}&limit=10`
+      await sock.sendMessage(m.key.remoteJid, { react: { text: '🕒', key: m.key } })
 
-      const res = await fetch(url)
-      const json = await res.json()
+      const searchApis = APIs.pinterest.search
+      const randomApi = searchApis[Math.floor(Math.random() * searchApis.length)]
+      const url = randomApi + encodeURIComponent(text)
 
-      if (!json?.results?.length) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ No se encontraron imágenes.' },
-          { quoted: m }
-        )
-      }
+      const res = await fetch(url).then(r => r.json())
+      let images = []
+      if (res.data) images = res.data
+      else if (res.result) images = res.result
+      else if (res.items) images = res.items
+      if (!images.length) throw '❌ No se encontraron imágenes.'
 
-      const random = json.results[Math.floor(Math.random() * json.results.length)]
-      const imageUrl = random.url ?? random.image ?? random.mediaUrl ?? random.images?.[0]
+      const imageUrl = images[Math.floor(Math.random() * images.length)].media || images[Math.floor(Math.random() * images.length)].url
 
-      if (!imageUrl) {
-        return sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ Imagen inválida recibida.' },
-          { quoted: m }
-        )
-      }
-
-      await sock.sendMessage(
-        m.key.remoteJid,
-        {
-          image: { url: imageUrl },
-          caption: `📌 ${query}`
-        },
-        { quoted: m }
-      )
+      await sock.sendMessage(m.key.remoteJid, { image: { url: imageUrl }, caption: `❀ Resultado de: ${text}` }, { quoted: m })
+      await sock.sendMessage(m.key.remoteJid, { react: { text: '✔️', key: m.key } })
 
     } catch (e) {
-      console.error('Error Pinterest:', e)
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: '❌ Error al buscar en Pinterest.' },
-        { quoted: m }
-      )
+      await sock.sendMessage(m.key.remoteJid, { react: { text: '✖️', key: m.key } })
+      await sock.sendMessage(m.key.remoteJid, { text: typeof e === 'string' ? e : '⚠ Error al buscar imágenes.' }, { quoted: m })
     }
   }
 }
