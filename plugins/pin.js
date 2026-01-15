@@ -25,11 +25,21 @@ export default {
           else if (res.data) images = res.data
           else if (res.result) images = res.result
           else if (res.items) images = res.items
+
           for (const img of images.sort(() => Math.random() - 0.5)) {
-            if (typeof img === 'string') { imageUrl = img; break }
-            if (img.media) { imageUrl = img.media; break }
-            if (img.url) { imageUrl = img.url; break }
-            if (img.image) { imageUrl = img.image; break }
+            let possibleUrls = []
+            if (typeof img === 'string') possibleUrls = [img]
+            else {
+              if (img.media) possibleUrls.push(img.media)
+              if (img.url) possibleUrls.push(img.url)
+              if (img.image) possibleUrls.push(img.image)
+              if (img.original) possibleUrls.push(img.original)
+              if (img.hd) possibleUrls.push(img.hd)
+              if (img.high) possibleUrls.push(img.high)
+              if (img.large) possibleUrls.push(img.large)
+            }
+            imageUrl = possibleUrls.find(u => u && /hd|original|large|high/.test(u)) || possibleUrls[0]
+            if (imageUrl) break
           }
           if (imageUrl) break
         } catch {}
