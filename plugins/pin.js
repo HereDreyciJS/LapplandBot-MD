@@ -1,8 +1,8 @@
 import APIs from '../lib/apis.js'
 
 export default {
-  command: ['pinterest', 'pin'],
-  category: 'busquedas',
+  command: ['pin', 'pinterest'],
+  category: 'busqueda',
   group: true,
 
   execute: async ({ sock, m, text, isGroup }) => {
@@ -10,7 +10,7 @@ export default {
     if (!text?.trim()) {
       return sock.sendMessage(
         m.key.remoteJid,
-        { text: '❀ Ingresa un término de búsqueda.' },
+        { text: 'Ingresa un término de búsqueda.' },
         { quoted: m }
       )
     }
@@ -21,50 +21,46 @@ export default {
         { react: { text: '🕒', key: m.key } }
       )
 
-      const query = encodeURIComponent(text.trim())
-      const endpoints = APIs.pinterest.search.map(e => e + query)
+      const endpoints = [...APIs.pinterest.search].sort(() => Math.random() - 0.5)
+      const images = new Set()
 
-      let images = []
+      for (const base of endpoints) {
+        if (images.size >= 10) break
+        const res = await fetch(base + encodeURIComponent(text))
+        if (!res.ok) continue
+        const data = await res.json()
 
-      for (const url of shuffle(endpoints)) {
-        try {
-          const res = await fetch(url)
-          if (!res.ok) continue
-          const data = await res.json()
+        const results =
+          data.result ||
+          data.results ||
+          data.data ||
+          []
 
-          const list =
-            data.result ||
-            data.results ||
-            data.data ||
-            data.images ||
-            []
+        for (const item of results) {
+          const url =
+            item.url ||
+            item.image ||
+            item.images?.original ||
+            item.images?.large ||
+            item.images?.medium
 
-          const urls = list
-            .map(v => v.url || v.image || v.images?.original || v.images?.url)
-            .filter(Boolean)
-
-          images.push(...urls)
-          if (images.length >= 10) break
-        } catch {}
+          if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+            images.add(url)
+          }
+          if (images.size >= 10) break
+        }
       }
 
-      images = [...new Set(images)]
-      images = shuffle(images).slice(0, 10)
+      if (images.size === 0) throw 'Error al buscar imágenes'
 
-      if (!images.length) {
-        throw 'No se encontraron imágenes'
-      }
-
-      const media = images.map(url => ({
-        image: { url }
-      }))
+      const media = [...images]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 10)
+        .map(url => ({ image: { url } }))
 
       await sock.sendMessage(
         m.key.remoteJid,
-        {
-          media,
-          caption: `❀ Resultados de Pinterest: ${text}`
-        },
+        { media },
         { quoted: m }
       )
 
@@ -72,6 +68,7 @@ export default {
         m.key.remoteJid,
         { react: { text: '✔️', key: m.key } }
       )
+
     } catch {
       await sock.sendMessage(
         m.key.remoteJid,
@@ -84,8 +81,4 @@ export default {
       )
     }
   }
-}
-
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5)
 }
