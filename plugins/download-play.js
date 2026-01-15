@@ -115,47 +115,26 @@ export default {
 
 async function getAud(url) {
   const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.url
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.download_url
-    },
-    {
-      api: 'Yupra',
-      endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r.result?.link
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`,
-      extractor: r => r.result?.download?.url
-    }
+    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`, extractor: r => r?.data?.url },
+    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`, extractor: r => r?.result?.download?.url },
+    { api: 'Delirius', endpoint: `${APIs.delirius.url}/download/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url },
+    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/api/d/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.dl },
+    { api: 'Xyro', endpoint: `${APIs.xyro.url}/dl/ytaudio?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url },
+    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.download_url },
+    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.link }
   ]
   return fetchFromApis(apis)
 }
 
 async function getVid(url) {
   const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.url
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`,
-      extractor: r => r.data?.download_url
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
-      extractor: r => r.result?.download?.url
-    }
+    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`, extractor: r => r?.data?.url },
+    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`, extractor: r => r?.result?.download?.url },
+    { api: 'Delirius', endpoint: `${APIs.delirius.url}/download/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url },
+    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/api/d/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.dl },
+    { api: 'Xyro', endpoint: `${APIs.xyro.url}/dl/ytvideo?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url },
+    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`, extractor: r => r?.data?.download_url },
+    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.link }
   ]
   return fetchFromApis(apis)
 }
