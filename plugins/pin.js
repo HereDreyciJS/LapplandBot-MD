@@ -1,5 +1,7 @@
 import APIs from '../lib/apis.js'
 
+const cache = {}
+
 export default {
   command: ['pin', 'pinterest'],
   category: 'busqueda',
@@ -16,31 +18,37 @@ export default {
         )
       }
 
-      const apis = APIs.pinterest.search
-      let data, lastError
+      const query = text.toLowerCase()
+      if (!cache[query]) cache[query] = []
 
-      for (const endpoint of apis) {
+      let images = []
+
+      for (const endpoint of APIs.pinterest.search) {
         try {
-          const res = await fetch(`${endpoint}${encodeURIComponent(text)}`)
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          data = await res.json()
-          if (data?.result?.length || data?.data?.length) break
-        } catch (err) {
-          lastError = err
-          continue
-        }
+          const res = await fetch(`${endpoint}${encodeURIComponent(query)}`)
+          if (!res.ok) continue
+          const data = await res.json()
+
+          let urls = []
+          if (data.result) urls = data.result.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
+          if (!urls.length && data.data) urls = data.data.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
+          if (!urls.length && Array.isArray(data)) urls = data.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
+
+          images.push(...urls)
+        } catch {}
       }
 
-      if (!data) throw lastError || new Error('No se pudo obtener resultados.')
-
-      let images = data.result || data.data || []
-      images = images.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
       images = [...new Set(images)]
-
       if (!images.length) throw new Error('No se encontraron imágenes.')
 
-      const shuffled = images.sort(() => 0.5 - Math.random())
-      const selected = shuffled.slice(0, 10)
+      const newImages = images.filter(url => !cache[query].includes(url))
+      if (!newImages.length) {
+        cache[query] = []
+        throw new Error('Se agotaron imágenes nuevas, intenta de nuevo.')
+      }
+
+      const selected = newImages.sort(() => 0.5 - Math.random()).slice(0, 10)
+      cache[query].push(...selected)
 
       const album = selected.map(url => ({ image: { url } }))
 
