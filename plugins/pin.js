@@ -1,3 +1,4 @@
+import fetch from 'node-fetch'
 import APIs from '../lib/apis.js'
 
 export default {
@@ -7,7 +8,11 @@ export default {
   execute: async ({ sock, m, text }) => {
     try {
       if (!text?.trim()) {
-        return sock.sendMessage(m.key.remoteJid, { text: '❌ Escribe una palabra clave.' }, { quoted: m })
+        return sock.sendMessage(
+          m.key.remoteJid,
+          { text: '❌ Escribe una palabra clave.' },
+          { quoted: m }
+        )
       }
 
       const query = encodeURIComponent(text)
@@ -37,7 +42,9 @@ export default {
         } catch {}
       }
 
-      urls = [...new Set(urls)].sort(() => 0.5 - Math.random()).slice(0, 10)
+      urls = [...new Set(urls)]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 10)
 
       if (urls.length === 0) {
         throw '❌ No se encontraron imágenes.'
@@ -56,7 +63,11 @@ export default {
         throw '❌ Error al procesar imágenes.'
       }
 
-      await sock.sendMessage(m.key.remoteJid, { messages: album }, { quoted: m })
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { messages: album },
+        { quoted: m }
+      )
 
     } catch (e) {
       await sock.sendMessage(
