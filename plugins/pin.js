@@ -1,7 +1,7 @@
 import APIs from '../lib/apis.js'
 
 export default {
-  command: ['pin', 'pinterest'],
+  command: ['pin','pinterest'],
   category: 'busqueda',
   group: true,
 
@@ -31,19 +31,18 @@ export default {
           if (!res.ok) continue
           const json = await res.json()
 
-          let list = []
-          if (Array.isArray(json.result)) list = json.result
-          else if (Array.isArray(json.results)) list = json.results
-          else if (Array.isArray(json.data)) list = json.data
-          else continue
+          const list = Array.isArray(json.result) ? json.result
+                      : Array.isArray(json.results) ? json.results
+                      : Array.isArray(json.data) ? json.data
+                      : []
 
           for (const item of list) {
             const url =
               item.url ||
               item.image ||
-              (item.images && item.images.original) ||
-              (item.images && item.images.large) ||
-              (item.images && item.images.medium)
+              (item.images?.original) ||
+              (item.images?.large) ||
+              (item.images?.medium)
 
             if (typeof url === 'string' && url.startsWith('http')) images.add(url)
             if (images.size >= 10) break
