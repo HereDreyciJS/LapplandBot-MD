@@ -11,20 +11,32 @@ export default {
   execute: async ({ sock, m, text, command, isGroup }) => {
     try {
       if (!isGroup) return
+
       if (!text?.trim()) {
-        return sock.sendMessage(m.key.remoteJid, { text: '❀ Ingresa el nombre o link del video.' }, { quoted: m })
+        return sock.sendMessage(
+          m.key.remoteJid,
+          { text: '❀ Ingresa el nombre o link del video.' },
+          { quoted: m }
+        )
       }
 
-      // reacción de espera
-      await sock.sendMessage(m.key.remoteJid, { react: { text: '🕒', key: m.key } })
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { react: { text: '🕒', key: m.key } }
+      )
 
-      // buscar video en YouTube
-      const match = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
+      const match = text.match(
+        /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/
+      )
+
       const query = match ? `https://youtu.be/${match[1]}` : text
       const search = await yts(query)
-      const video = match ? search.videos.find(v => v.videoId === match[1]) || search.videos[0] : search.videos[0]
+      const video = match
+        ? search.videos.find(v => v.videoId === match[1]) || search.videos[0]
+        : search.videos[0]
 
       if (!video) throw 'ꕥ No se encontraron resultados.'
+
       const { title, thumbnail, timestamp, views, ago, url, author, seconds } = video
       if (seconds > 1800) throw '⚠ El contenido supera los 30 minutos.'
 
@@ -37,58 +49,113 @@ export default {
 > ☁︎ Publicado » *${ago}*
 > ➪ Link » ${url}`
 
-      await sock.sendMessage(m.key.remoteJid, { image: { url: thumbnail }, caption: info }, { quoted: m })
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { image: { url: thumbnail }, caption: info },
+        { quoted: m }
+      )
 
-      // decidir si es audio o video
       if (['play','yta','ytmp3','playaudio'].includes(command)) {
         const audio = await getAud(url)
         if (!audio?.url) throw '⚠ No se pudo obtener el audio.'
 
-        await sock.sendMessage(m.key.remoteJid, { text: `> ❀ Audio listo\n> Servidor » ${audio.api}` }, { quoted: m })
-        await sock.sendMessage(m.key.remoteJid, { audio: { url: audio.url }, fileName: `${title}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
+        await sock.sendMessage(
+          m.key.remoteJid,
+          { text: `> ❀ Audio listo\n> Servidor » ${audio.api}` },
+          { quoted: m }
+        )
 
+        await sock.sendMessage(
+          m.key.remoteJid,
+          {
+            audio: { url: audio.url },
+            fileName: `${title}.mp3`,
+            mimetype: 'audio/mpeg'
+          },
+          { quoted: m }
+        )
       } else {
         const videoDl = await getVid(url)
         if (!videoDl?.url) throw '⚠ No se pudo obtener el video.'
 
-        await sock.sendMessage(m.key.remoteJid, { text: `> ❀ Video listo\n> Servidor » ${videoDl.api}` }, { quoted: m })
-        await sock.sendMessage(m.key.remoteJid, { video: { url: videoDl.url }, caption: `> ❀ ${title}` }, { quoted: m })
+        await sock.sendMessage(
+          m.key.remoteJid,
+          { text: `> ❀ Video listo\n> Servidor » ${videoDl.api}` },
+          { quoted: m }
+        )
+
+        await sock.sendMessage(
+          m.key.remoteJid,
+          {
+            video: { url: videoDl.url },
+            caption: `> ❀ ${title}`
+          },
+          { quoted: m }
+        )
       }
 
-      // reacción de éxito
-      await sock.sendMessage(m.key.remoteJid, { react: { text: '✔️', key: m.key } })
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { react: { text: '✔️', key: m.key } }
+      )
 
     } catch (e) {
-      await sock.sendMessage(m.key.remoteJid, { react: { text: '✖️', key: m.key } })
-      await sock.sendMessage(m.key.remoteJid, { text: typeof e === 'string' ? e : '⚠ Error al procesar.' }, { quoted: m })
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { react: { text: '✖️', key: m.key } }
+      )
+      await sock.sendMessage(
+        m.key.remoteJid,
+        { text: typeof e === 'string' ? e : '⚠ Error al procesar.' },
+        { quoted: m }
+      )
     }
   }
 }
 
-// ==== FUNCIONES PARA DESCARGA ====
-
 async function getAud(url) {
   const apis = [
-    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`, extractor: r => r?.data?.url || r?.result?.link },
-    { api: 'Delirius', endpoint: `${APIs.delirius.url}/download/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url || r?.data?.link },
-    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/api/d/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.dl || r?.result?.url },
-    { api: 'Xyro', endpoint: `${APIs.xyro.url}/dl/ytaudio?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url || r?.data?.url },
-    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.download_url || r?.result?.url },
-    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.link || r?.data?.url },
-    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`, extractor: r => r?.result?.download?.url || r?.data?.url }
+    {
+      api: 'Adonix',
+      endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
+      extractor: r => r.data?.url
+    },
+    {
+      api: 'Zenzxz',
+      endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`,
+      extractor: r => r.data?.download_url
+    },
+    {
+      api: 'Yupra',
+      endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
+      extractor: r => r.result?.link
+    },
+    {
+      api: 'Vreden',
+      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`,
+      extractor: r => r.result?.download?.url
+    }
   ]
   return fetchFromApis(apis)
 }
 
 async function getVid(url) {
   const apis = [
-    { api: 'Adonix', endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`, extractor: r => r?.data?.url || r?.result?.link },
-    { api: 'Delirius', endpoint: `${APIs.delirius.url}/download/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url || r?.data?.link },
-    { api: 'Siputzx', endpoint: `${APIs.siputzx.url}/api/d/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.data?.dl || r?.result?.url },
-    { api: 'Xyro', endpoint: `${APIs.xyro.url}/dl/ytvideo?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.url || r?.data?.url },
-    { api: 'Zenzxz', endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`, extractor: r => r?.data?.download_url || r?.result?.url },
-    { api: 'Yupra', endpoint: `${APIs.yupra.url}/api/downloader/ytmp4?url=${encodeURIComponent(url)}`, extractor: r => r?.result?.link || r?.data?.url },
-    { api: 'Vreden', endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`, extractor: r => r?.result?.download?.url || r?.data?.url }
+    {
+      api: 'Adonix',
+      endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
+      extractor: r => r.data?.url
+    },
+    {
+      api: 'Zenzxz',
+      endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`,
+      extractor: r => r.data?.download_url
+    },
+    {
+      api: 'Vreden',
+      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
+      extractor: r => r.result?.download?.url
+    }
   ]
   return fetchFromApis(apis)
 }
