@@ -1,69 +1,61 @@
+import fetch from 'node-fetch'
 import APIs from '../lib/apis.js'
 
-const cache = {}
-
 export default {
-  command: ['pin', 'pinterest'],
+  command: ['pin', 'pinterest', 'pins'],
   category: 'busqueda',
-  description: 'Busca imágenes en Pinterest y envía un álbum de 10 imágenes aleatorias',
+  description: 'Busca imágenes de Pinterest y las envía como álbum',
   group: true,
 
   execute: async ({ sock, m, text }) => {
     try {
-      if (!text?.trim()) {
-        return await sock.sendMessage(
-          m.key.remoteJid,
-          { text: '❌ Ingresa una palabra clave para buscar.' },
-          { quoted: m }
-        )
-      }
+      if (!text?.trim()) return sock.sendMessage(m.key.remoteJid, { text: '❌ Ingresa una palabra clave.' }, { quoted: m })
 
-      const query = text.toLowerCase()
-      if (!cache[query]) cache[query] = []
-
+      const query = encodeURIComponent(text)
       let images = []
 
-      for (const endpoint of APIs.pinterest.search) {
+      for (let api of APIs.pinterest.search) {
         try {
-          const res = await fetch(`${endpoint}${encodeURIComponent(query)}`)
-          if (!res.ok) continue
-          const data = await res.json()
-
-          let urls = []
-          if (data.result) urls = data.result.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
-          if (!urls.length && data.data) urls = data.data.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
-          if (!urls.length && Array.isArray(data)) urls = data.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
-
-          images.push(...urls)
+          const res = await fetch(`${api}${query}`).then(r => r.json())
+          const results = res?.result || res?.data || res?.images || []
+          if (results.length > 0) {
+            const urls = [...new Set(results.map(r => r.url || r.image || r.thumbnail).filter(Boolean))]
+            if (urls.length > 0) {
+              images = urls
+              break
+            }
+          }
         } catch {}
       }
 
-      images = [...new Set(images)]
-      if (!images.length) throw new Error('No se encontraron imágenes.')
+      if (!images.length) throw '❌ No se encontraron imágenes.'
 
-      const newImages = images.filter(url => !cache[query].includes(url))
-      if (!newImages.length) {
-        cache[query] = []
-        throw new Error('Se agotaron imágenes nuevas, intenta de nuevo.')
-      }
+      images = shuffleArray(images).slice(0, 10)
 
-      const selected = newImages.sort(() => 0.5 - Math.random()).slice(0, 10)
-      cache[query].push(...selected)
+      const mediaMessages = await Promise.all(images.map(async url => {
+        try {
+          const buffer = await fetch(url).then(res => res.arrayBuffer())
+          return { image: Buffer.from(buffer) }
+        } catch {
+          return null
+        }
+      }))
 
-      const album = selected.map(url => ({ image: { url } }))
+      const filteredMedia = mediaMessages.filter(Boolean)
+      if (!filteredMedia.length) throw '❌ No se pudieron cargar las imágenes.'
 
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { media: album },
-        { quoted: m }
-      )
+      await sock.sendMessage(m.key.remoteJid, { media: filteredMedia }, { quoted: m })
 
     } catch (e) {
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: `❌ Error al buscar imágenes: ${e.message}` },
-        { quoted: m }
-      )
+      await sock.sendMessage(m.key.remoteJid, { text: typeof e === 'string' ? e : '⚠ Error al buscar imágenes.' }, { quoted: m })
     }
   }
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[array[i], array[j]] = [array[j], array[i]]
+  }
+  return array
 }
