@@ -1,78 +1,57 @@
 import APIs from '../lib/apis.js'
 
 export default {
-  command: ['pin','pinterest'],
+  command: ['pin', 'pinterest'],
   category: 'busqueda',
+  description: 'Busca imágenes en Pinterest usando tu palabra clave',
   group: true,
 
-  execute: async ({ sock, m, text, isGroup }) => {
-    if (!isGroup) return
-    if (!text?.trim()) {
-      return sock.sendMessage(
-        m.key.remoteJid,
-        { text: 'Ingresa un término de búsqueda.' },
-        { quoted: m }
-      )
-    }
-
+  execute: async ({ sock, m, text }) => {
     try {
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { react: { text: '🕒', key: m.key } }
-      )
-
-      const images = new Set()
-      const endpoints = [...APIs.pinterest.search].sort(() => Math.random() - 0.5)
-
-      for (const base of endpoints) {
-        if (images.size >= 10) break
-        try {
-          const res = await fetch(base + encodeURIComponent(text))
-          if (!res.ok) continue
-          const json = await res.json()
-
-          const list = Array.isArray(json.result) ? json.result
-                      : Array.isArray(json.results) ? json.results
-                      : Array.isArray(json.data) ? json.data
-                      : []
-
-          for (const item of list) {
-            const url =
-              item.url ||
-              item.image ||
-              (item.images?.original) ||
-              (item.images?.large) ||
-              (item.images?.medium)
-
-            if (typeof url === 'string' && url.startsWith('http')) images.add(url)
-            if (images.size >= 10) break
-          }
-        } catch {}
+      if (!text?.trim()) {
+        return await sock.sendMessage(
+          m.key.remoteJid,
+          { text: '❌ Ingresa una palabra clave para buscar.' },
+          { quoted: m }
+        )
       }
 
-      if (images.size < 1) throw 'Error al buscar imágenes'
+      const apis = APIs.pinterest.search
+      let data, lastError
 
-      const album = [...images].slice(0, 10).map(url => ({ url }))
+      for (const endpoint of apis) {
+        try {
+          const res = await fetch(`${endpoint}${encodeURIComponent(text)}`)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          data = await res.json()
+          if (data?.result?.length || data?.data?.length) break
+        } catch (err) {
+          lastError = err
+          continue
+        }
+      }
 
+      if (!data) throw lastError || new Error('No se pudo obtener resultados.')
+
+      // Extraer las imágenes
+      let images = data.result || data.data || []
+      images = images.map(i => i.url || i.image || i.thumbnail).filter(Boolean)
+      if (!images.length) throw new Error('No se encontraron imágenes.')
+
+      // Escoger una aleatoria
+      const img = images[Math.floor(Math.random() * images.length)]
+
+      // Enviar la imagen
       await sock.sendMessage(
         m.key.remoteJid,
-        { image: album, caption: `Resultados de: ${text}` },
+        { image: { url: img }, caption: `🔍 Resultado de Pinterest para: ${text}` },
         { quoted: m }
       )
 
+    } catch (e) {
       await sock.sendMessage(
         m.key.remoteJid,
-        { react: { text: '✔️', key: m.key } }
-      )
-
-    } catch {
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { react: { text: '✖️', key: m.key } }
-      )
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { text: 'Error al buscar imágenes' },
+        { text: `❌ Error al buscar imágenes: ${e.message}` },
         { quoted: m }
       )
     }
