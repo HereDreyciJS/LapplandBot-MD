@@ -5,6 +5,7 @@ import { startConnection } from './lib/connection.js'
 import { loadPlugins } from './lib/plugins.js'
 import { handler } from './handler.js'
 import { setupWelcome } from './lib/welcome-event.js'
+import groupEvents from './lib/group-events.js'
 
 let sock
 let reconnecting = false
@@ -32,6 +33,7 @@ const start = async () => {
     global.conn = sock
 
     setupWelcome(sock)
+    groupEvents(sock)
 
     sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect } = update
@@ -78,5 +80,6 @@ process.on('uncaughtException', console.error)
 process.on('unhandledRejection', console.error)
 
 start()
+
 
 
