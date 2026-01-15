@@ -21,45 +21,43 @@ export default {
         { react: { text: '🕒', key: m.key } }
       )
 
-      const endpoints = [...APIs.pinterest.search].sort(() => Math.random() - 0.5)
       const images = new Set()
+      const endpoints = [...APIs.pinterest.search].sort(() => Math.random() - 0.5)
 
       for (const base of endpoints) {
         if (images.size >= 10) break
-        const res = await fetch(base + encodeURIComponent(text))
-        if (!res.ok) continue
-        const json = await res.json()
+        try {
+          const res = await fetch(base + encodeURIComponent(text))
+          if (!res.ok) continue
+          const json = await res.json()
 
-        const list = json.result || json.results || json.data || []
+          let list = []
+          if (Array.isArray(json.result)) list = json.result
+          else if (Array.isArray(json.results)) list = json.results
+          else if (Array.isArray(json.data)) list = json.data
+          else continue
 
-        for (const item of list) {
-          const url =
-            item.url ||
-            item.image ||
-            item.images?.original ||
-            item.images?.large ||
-            item.images?.medium
+          for (const item of list) {
+            const url =
+              item.url ||
+              item.image ||
+              (item.images && item.images.original) ||
+              (item.images && item.images.large) ||
+              (item.images && item.images.medium)
 
-          if (typeof url === 'string' && url.startsWith('http')) {
-            images.add(url)
+            if (typeof url === 'string' && url.startsWith('http')) images.add(url)
+            if (images.size >= 10) break
           }
-          if (images.size >= 10) break
-        }
+        } catch {}
       }
 
       if (images.size < 1) throw 'Error al buscar imágenes'
 
-      const album = [...images]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 10)
-        .map(url => ({ url }))
+      const album = [...images].slice(0, 10).map(url => ({ url }))
 
       await sock.sendMessage(
         m.key.remoteJid,
-        {
-          image: album,
-          caption: `Resultados de: ${text}`
-        },
+        { image: album, caption: `Resultados de: ${text}` },
         { quoted: m }
       )
 
