@@ -28,15 +28,11 @@ export default {
         if (images.size >= 10) break
         const res = await fetch(base + encodeURIComponent(text))
         if (!res.ok) continue
-        const data = await res.json()
+        const json = await res.json()
 
-        const results =
-          data.result ||
-          data.results ||
-          data.data ||
-          []
+        const list = json.result || json.results || json.data || []
 
-        for (const item of results) {
+        for (const item of list) {
           const url =
             item.url ||
             item.image ||
@@ -44,23 +40,26 @@ export default {
             item.images?.large ||
             item.images?.medium
 
-          if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+          if (typeof url === 'string' && url.startsWith('http')) {
             images.add(url)
           }
           if (images.size >= 10) break
         }
       }
 
-      if (images.size === 0) throw 'Error al buscar imágenes'
+      if (images.size < 1) throw 'Error al buscar imágenes'
 
-      const media = [...images]
+      const album = [...images]
         .sort(() => Math.random() - 0.5)
         .slice(0, 10)
-        .map(url => ({ image: { url } }))
+        .map(url => ({ url }))
 
       await sock.sendMessage(
         m.key.remoteJid,
-        { media },
+        {
+          image: album,
+          caption: `Resultados de: ${text}`
+        },
         { quoted: m }
       )
 
