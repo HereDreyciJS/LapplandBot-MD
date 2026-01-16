@@ -1,6 +1,9 @@
 import fetch from 'node-fetch'
 import yts from 'yt-search'
-import APIs from '../lib/apis.js'
+
+const key = "dfcb6d76f2f6a9894gjkege8a4ab232222";
+const agent = "Mozilla/5.0 (Android 13; Mobile; rv:146.0) Gecko/146.0 Firefox/146.0";
+const referer = "https://y2down.cc/enSB/";
 
 export default {
   command: ['play','yta','ytmp3','playaudio','play2','ytmp4','mp4'],
@@ -29,7 +32,7 @@ export default {
         /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/
       )
 
-      const query = match ? `https://youtu.be/${match[1]}` : text
+      const query = match ? text : text
       const search = await yts(query)
       const video = match
         ? search.videos.find(v => v.videoId === match[1]) || search.videos[0]
@@ -37,17 +40,10 @@ export default {
 
       if (!video) throw 'ꕥ No se encontraron resultados.'
 
-      const { title, thumbnail, timestamp, views, ago, url, author, seconds } = video
+      const { title, thumbnail, timestamp, views, ago, url, seconds } = video
       if (seconds > 1800) throw '⚠ El contenido supera los 30 minutos.'
 
-      const info =
-`「✦」Descargando *<${title}>*
-
-> ❑ Canal » *${author?.name || 'Desconocido'}*
-> ♡ Vistas » *${formatViews(views)}*
-> ✧︎ Duración » *${timestamp}*
-> ☁︎ Publicado » *${ago}*
-> ➪ Link » ${url}`
+      const info = `「✦」Descargando *<${title}>*\n\n> ❑ Canal » *${video.author?.name || 'Desconocido'}*\n> ♡ Vistas » *${formatViews(views)}*\n> ✧︎ Duración » *${timestamp}*\n> ☁︎ Publicado » *${ago}*\n> ➪ Link » ${url}`
 
       await sock.sendMessage(
         m.key.remoteJid,
@@ -55,55 +51,38 @@ export default {
         { quoted: m }
       )
 
-      if (['play','yta','ytmp3','playaudio'].includes(command)) {
-        const audio = await getAud(url)
-        if (!audio?.url) throw '⚠ No se pudo obtener el audio.'
+      const isAudio = ['play','yta','ytmp3','playaudio'].includes(command)
+      const format = isAudio ? 'mp3' : '360'
+      
+      const result = await ytdl(url, format)
 
-        await sock.sendMessage(
-          m.key.remoteJid,
-          { text: `> ❀ Audio listo\n> Servidor » ${audio.api}` },
-          { quoted: m }
-        )
+      if (result.error || !result.link) throw '⚠ No se pudo obtener el archivo con el scraper.'
 
+      if (isAudio) {
         await sock.sendMessage(
           m.key.remoteJid,
           {
-            audio: { url: audio.url },
+            audio: { url: result.link },
             fileName: `${title}.mp3`,
             mimetype: 'audio/mpeg'
           },
           { quoted: m }
         )
       } else {
-        const videoDl = await getVid(url)
-        if (!videoDl?.url) throw '⚠ No se pudo obtener el video.'
-
-        await sock.sendMessage(
-          m.key.remoteJid,
-          { text: `> ❀ Video listo\n> Servidor » ${videoDl.api}` },
-          { quoted: m }
-        )
-
         await sock.sendMessage(
           m.key.remoteJid,
           {
-            video: { url: videoDl.url },
+            video: { url: result.link },
             caption: `> ❀ ${title}`
           },
           { quoted: m }
         )
       }
 
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { react: { text: '✔️', key: m.key } }
-      )
+      await sock.sendMessage(m.key.remoteJid, { react: { text: '✔️', key: m.key } })
 
     } catch (e) {
-      await sock.sendMessage(
-        m.key.remoteJid,
-        { react: { text: '✖️', key: m.key } }
-      )
+      await sock.sendMessage(m.key.remoteJid, { react: { text: '✖️', key: m.key } })
       await sock.sendMessage(
         m.key.remoteJid,
         { text: typeof e === 'string' ? e : '⚠ Error al procesar.' },
@@ -113,66 +92,32 @@ export default {
   }
 }
 
-async function getAud(url) {
-  const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytaudio?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.url
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.download_url
-    },
-    {
-      api: 'Yupra',
-      endpoint: `${APIs.yupra.url}/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
-      extractor: r => r.result?.link
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`,
-      extractor: r => r.result?.download?.url
-    }
-  ]
-  return fetchFromApis(apis)
-}
-
-async function getVid(url) {
-  const apis = [
-    {
-      api: 'Adonix',
-      endpoint: `${APIs.adonix.url}/download/ytvideo?apikey=${APIs.adonix.key}&url=${encodeURIComponent(url)}`,
-      extractor: r => r.data?.url
-    },
-    {
-      api: 'Zenzxz',
-      endpoint: `${APIs.zenzxz.url}/downloader/ytmp4?url=${encodeURIComponent(url)}&resolution=360`,
-      extractor: r => r.data?.download_url
-    },
-    {
-      api: 'Vreden',
-      endpoint: `${APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
-      extractor: r => r.result?.download?.url
-    }
-  ]
-  return fetchFromApis(apis)
-}
-
-async function fetchFromApis(apis) {
-  for (const { api, endpoint, extractor } of apis) {
+async function ytdl(url, format) {
     try {
-      const controller = new AbortController()
-      const t = setTimeout(() => controller.abort(), 10000)
-      const res = await fetch(endpoint, { signal: controller.signal }).then(r => r.json())
-      clearTimeout(t)
-      const link = extractor(res)
-      if (link) return { url: link, api }
-    } catch {}
-    await new Promise(r => setTimeout(r, 500))
-  }
-  return null
+        const initUrl = `https://p.savenow.to/ajax/download.php?copyright=0&format=${format}&url=${url}&api=${key}`;
+        const init = await fetch(initUrl, {
+            headers: { "User-Agent": agent, "Referer": referer }
+        });
+        const data = await init.json();
+        if (!data.success) return { error: "Failed" };
+
+        const id = data.id;
+        const progressUrl = `https://p.savenow.to/api/progress?id=${id}`;
+        
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(progressUrl, {
+                headers: { "User-Agent": agent, "Referer": referer }
+            });
+            const status = await response.json();
+            if (status.progress === 1000) {
+                return { link: status.download_url };
+            }
+        }
+        return { error: "Timeout" };
+    } catch {
+        return { error: "Error" };
+    }
 }
 
 function formatViews(v) {
