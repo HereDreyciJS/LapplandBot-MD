@@ -1,3 +1,5 @@
+process.setMaxListeners(0)
+
 import 'dotenv/config'
 import './lib/system/database.js'
 import settings from './settings.js'
@@ -19,6 +21,11 @@ const start = async () => {
     }
 
     await loadPlugins()
+
+    if (sock?.ev) {
+      sock.ev.removeAllListeners()
+    }
+
     sock = await startConnection()
 
     if (!global.mainBot) {
@@ -53,7 +60,7 @@ const start = async () => {
         console.log('❌ Conexión cerrada:', code)
 
         if (code !== 401) {
-          start()
+          setTimeout(start, 1500)
         } else {
           console.log('🚫 Sesión cerrada')
         }
@@ -61,13 +68,11 @@ const start = async () => {
     })
 
     sock.ev.on('messages.upsert', async (m) => {
-      try {
-        if (m.type !== 'notify') return
-        for (const msg of m.messages) {
-          await handler(sock, msg)
-        }
-      } catch (e) {
-        console.error('❌ Error en handler:', e)
+      if (m.type !== 'notify') return
+
+      for (const msg of m.messages) {
+        if (!msg?.message) continue
+        handler(sock, msg).catch(console.error)
       }
     })
 
@@ -80,6 +85,3 @@ process.on('uncaughtException', console.error)
 process.on('unhandledRejection', console.error)
 
 start()
-
-
-
