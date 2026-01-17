@@ -18,7 +18,6 @@ export const handler = async (sock, msg) => {
 
     const prefix = global.settings.bot.prefix
     const isCommand = body.startsWith(prefix)
-
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
     if (!rawSender) return
@@ -28,9 +27,7 @@ export const handler = async (sock, msg) => {
     const isBot = msg.key.fromMe === true
 
     const user = global.db.getUser(rawSender)
-    if (msg.pushName && msg.pushName !== user.name) {
-      user.name = msg.pushName
-    }
+    if (msg.pushName && msg.pushName !== user.name) user.name = msg.pushName
 
     let isAdmin = false
 
@@ -55,7 +52,7 @@ export const handler = async (sock, msg) => {
       isAdmin = cached.admins.includes(rawSender)
     }
 
-    await print(sock, msg, body, isCommand, isGroup)
+    if (isCommand) await print(sock, msg, body, isCommand, isGroup)
 
     if (!isCommand) return
 
