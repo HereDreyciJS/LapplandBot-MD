@@ -1,8 +1,10 @@
 import print from './lib/utils/print.js'
 
+const adminCache = new Map()
+
 export const handler = async (sock, msg) => {
   try {
-    if (!msg || !msg.message) return
+    if (!msg?.message) return
     if (msg.key.remoteJid === 'status@broadcast') return
 
     const body =
@@ -12,9 +14,10 @@ export const handler = async (sock, msg) => {
       msg.message.videoMessage?.caption ||
       ''
 
+    if (!body) return
+
     const prefix = global.settings.bot.prefix
     const isCommand = body.startsWith(prefix)
-    if (!body && !isCommand) return
 
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
@@ -30,16 +33,26 @@ export const handler = async (sock, msg) => {
     }
 
     let isAdmin = false
-    if (isGroup) {
-      try {
-        const meta = await sock.groupMetadata(msg.key.remoteJid)
-        const participant = meta.participants.find(
-          p => p.id === rawSender || p.lid === rawSender
-        )
-        isAdmin = !!(participant?.admin || participant?.isSuperAdmin)
-      } catch {
-        isAdmin = false
+
+    if (isGroup && isCommand) {
+      const chatId = msg.key.remoteJid
+      const now = Date.now()
+      let cached = adminCache.get(chatId)
+
+      if (!cached || now - cached.time > 60_000) {
+        try {
+          const meta = await sock.groupMetadata(chatId)
+          const admins = meta.participants
+            .filter(p => p.admin)
+            .map(p => p.id || p.lid)
+          cached = { admins, time: now }
+          adminCache.set(chatId, cached)
+        } catch {
+          cached = { admins: [], time: now }
+        }
       }
+
+      isAdmin = cached.admins.includes(rawSender)
     }
 
     await print(sock, msg, body, isCommand, isGroup)
@@ -56,7 +69,7 @@ export const handler = async (sock, msg) => {
     }
 
     const plugin = global.plugins.get(command)
-    if (!plugin || typeof plugin.execute !== 'function') return
+    if (!plugin?.execute) return
 
     if (plugin.owner && !isOwner) {
       return sock.sendMessage(
