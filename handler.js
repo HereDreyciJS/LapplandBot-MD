@@ -2,19 +2,12 @@ import print from './lib/utils/print.js'
 
 const adminCache = new Map()
 
-setInterval(() => {
-  const now = Date.now()
-  for (const [k, v] of adminCache) {
-    if (now - v.time > 5 * 60_000) adminCache.delete(k)
-  }
-}, 5 * 60_000)
-
 export const handler = async (sock, msg) => {
   try {
-    const message = msg?.message
-    if (!message) return
+    if (!msg?.message) return
     if (msg.key.remoteJid === 'status@broadcast') return
 
+    const message = msg.message
     const body =
       message.conversation ??
       message.extendedTextMessage?.text ??
@@ -27,6 +20,14 @@ export const handler = async (sock, msg) => {
     const prefix = global.settings.bot.prefix
     const isCommand = body.startsWith(prefix)
 
+    if (isCommand) await print(sock, msg, body, isCommand, msg.key.remoteJid.endsWith('@g.us'))
+
+    if (!isCommand) return
+
+    const args = body.slice(prefix.length).trim().split(/\s+/)
+    const command = args.shift()?.toLowerCase()
+    if (!command) return
+
     const isGroup = msg.key.remoteJid.endsWith('@g.us')
     const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
     if (!rawSender) return
@@ -35,25 +36,15 @@ export const handler = async (sock, msg) => {
     const isOwner = global.settings.bot.owners.includes(senderNumber)
     const isBot = msg.key.fromMe === true
 
-    if (isCommand) await print(sock, msg, body, isCommand, isGroup)
-
-    const args = body.slice(prefix.length).trim().split(/\s+/)
-    const command = args.shift()?.toLowerCase()
-    const text = args.join(' ')
-
-    const cdKey = `${rawSender}:${command}`
-    const now = Date.now()
-    const last = global.cooldowns?.get(cdKey) || 0
-    if (now - last < 2000) return
-    global.cooldowns?.set(cdKey, now)
-
-    const plugin = global.plugins.get(command)
-    if (!plugin?.execute) return
+    const user = global.db.getUser(rawSender)
+    if (msg.pushName && msg.pushName !== user.name) user.name = msg.pushName
 
     let isAdmin = false
     if (isGroup) {
       const chatId = msg.key.remoteJid
+      const now = Date.now()
       let cached = adminCache.get(chatId)
+
       if (!cached || now - cached.time > 60_000) {
         try {
           const meta = await sock.groupMetadata(chatId)
@@ -69,8 +60,8 @@ export const handler = async (sock, msg) => {
       isAdmin = cached.admins.includes(rawSender)
     }
 
-    const user = isCommand ? global.db.getUser(rawSender) : {}
-    if (user && msg.pushName && msg.pushName !== user.name) user.name = msg.pushName
+    const plugin = global.plugins.get(command)
+    if (!plugin?.execute) return
 
     if (plugin.owner && !isOwner) return
     if (plugin.admin && !isAdmin) return
@@ -79,7 +70,7 @@ export const handler = async (sock, msg) => {
       sock,
       m: msg,
       args,
-      text,
+      text: args.join(' '),
       prefix,
       command,
       isGroup,
@@ -87,6 +78,7 @@ export const handler = async (sock, msg) => {
       isAdmin,
       user
     })
+
   } catch (e) {
     console.error('❌ Error en handler:', e)
   }
