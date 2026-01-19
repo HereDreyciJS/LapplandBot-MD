@@ -1,70 +1,80 @@
-import fs from 'fs/promises'
+import fetch from 'node-fetch'
+import { promises as fs } from 'fs'
 
-const FILE = './lib/characters.json'
-const locks = new Map()
+const FILE_PATH = './lib/characters.json'
+const rollLocks = new Map()
 
-async function loadCharacters() {
-  try {
-    const raw = await fs.readFile(FILE, 'utf-8')
-    return JSON.parse(raw)
-  } catch {
-    return {}
+function cleanOldLocks() {
+  const now = Date.now()
+  for (const [userId, lockTime] of rollLocks.entries()) {
+    if (now - lockTime > 30000) rollLocks.delete(userId)
   }
 }
 
-function getAllCharacters(db) {
-  return Object.values(db).flatMap(s =>
-    Array.isArray(s.characters) ? s.characters : []
-  )
+async function loadCharacters() {
+  try {
+    await fs.access(FILE_PATH)
+  } catch {
+    await fs.writeFile(FILE_PATH, '{}')
+  }
+  const raw = await fs.readFile(FILE_PATH, 'utf-8')
+  return JSON.parse(raw)
+}
+
+function flattenCharacters(db) {
+  return Object.values(db).flatMap(s => Array.isArray(s.characters) ? s.characters : [])
+}
+
+function formatTag(tag) {
+  return String(tag).trim().toLowerCase().replace(/\s+/g, '_')
+}
+
+async function fetchDanbooruImage(tag) {
+  try {
+    const query = encodeURIComponent(formatTag(tag))
+    const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=10`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const images = data
+      .filter(post => (post.file_url || post.large_file_url) && /\.(jpg|jpeg|png)$/i.test(post.file_url || post.large_file_url))
+      .map(post => post.file_url || post.large_file_url)
+    if (images.length === 0) return null
+    return images[Math.floor(Math.random() * images.length)]
+  } catch {
+    return null
+  }
 }
 
 export default {
-  command: ['rw', 'roll', 'rollwaifu'],
-  execute: async ({ sock, m, command, prefix }) => {
-    if (!m?.key?.remoteJid) return
-
-    const chatId = m.key.remoteJid
-    const sender = m.key.participant || chatId
-    const now = Date.now()
-
-    if (locks.has(sender)) {
-      if (now - locks.get(sender) < 15000) return
-      locks.delete(sender)
+  command: ['rollwaifu', 'rw', 'roll'],
+  category: 'gacha',
+  execute: async ({ sock, m, args, command, prefix }) => {
+    const userId = m.key.participant || m.key.remoteJid
+    cleanOldLocks()
+    if (rollLocks.has(userId)) {
+      const now = Date.now()
+      if (now - rollLocks.get(userId) < 15000) return
+      rollLocks.delete(userId)
     }
 
-    locks.set(sender, now)
+    const db = await loadCharacters()
+    const allCharacters = flattenCharacters(db)
+    if (allCharacters.length === 0) return await sock.sendMessage(m.key.remoteJid, { text: '❌ No hay personajes disponibles.' }, { quoted: m })
 
-    try {
-      const db = await loadCharacters()
-      const all = getAllCharacters(db)
-      if (!all.length) {
-        await sock.sendMessage(chatId, { text: '❌ No hay personajes disponibles.' })
-        return
-      }
+    const selected = allCharacters[Math.floor(Math.random() * allCharacters.length)]
+    const media = await fetchDanbooruImage(selected.tags?.[0] || selected.name)
+    if (!media) return await sock.sendMessage(m.key.remoteJid, { text: `❌ No se encontraron imágenes para *${selected.name}*.` }, { quoted: m })
 
-      const pick = all[Math.floor(Math.random() * all.length)]
+    const msg = `❀ Nombre » *${selected.name}*\n⚥ Género » *${selected.gender || 'Desconocido'}*`
 
-      const text =
-        `🎲 *GACHA*\n\n` +
-        `👤 *Nombre:* ${pick.name || 'Desconocido'}\n` +
-        `📺 *Fuente:* ${pick.source || 'Desconocido'}\n` +
-        `💎 *Valor:* ${pick.value || 100}`
+    await sock.sendMessage(m.key.remoteJid, {
+      image: { url: media },
+      caption: msg
+    }, { quoted: m })
 
-      if (pick.image) {
-        await sock.sendMessage(chatId, {
-          image: { url: pick.image },
-          caption: text
-        })
-      } else {
-        await sock.sendMessage(chatId, { text })
-      }
-
-    } catch (e) {
-      await sock.sendMessage(chatId, {
-        text: `❌ Error ejecutando ${prefix + command}`
-      })
-    } finally {
-      locks.delete(sender)
-    }
+    rollLocks.set(userId, Date.now())
   }
 }
