@@ -1,31 +1,22 @@
-import fetch from 'node-fetch'
 import characters from '../lib/gacha/characters.js'
-
-const rollLocks = new Map()
-
-function cleanOldLocks() {
-  const now = Date.now()
-  for (const [userId, lockTime] of rollLocks.entries()) {
-    if (now - lockTime > 30000) rollLocks.delete(userId)
-  }
-}
+import fetch from 'node-fetch'
 
 function formatTag(tag) {
-  return String(tag).trim().toLowerCase().replace(/\s+/g, '_').replace(/[^\w_]/g, '')
+  return String(tag).trim().toLowerCase().replace(/\s+/g, '_')
 }
 
 async function buscarImagenDanbooru(tag) {
   const query = encodeURIComponent(tag)
-  const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=20`
+  const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=10`
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }
+      headers: { 'User-Agent': 'LapplandBot', 'Accept': 'application/json' }
     })
     if (!res.ok) return []
     const data = await res.json()
     const images = data
-      .filter(post => (post.file_url || post.large_file_url) && /\.(jpg|jpeg|png)$/i.test(post.file_url || post.large_file_url))
-      .map(post => post.file_url || post.large_file_url)
+      .filter(p => (p.file_url || p.large_file_url) && /\.(jpg|jpeg|png)$/i.test(p.file_url || p.large_file_url))
+      .map(p => p.file_url || p.large_file_url)
     return images
   } catch {
     return []
@@ -35,32 +26,21 @@ async function buscarImagenDanbooru(tag) {
 export default {
   command: ['rollwaifu', 'rw', 'roll'],
   category: 'gacha',
-  execute: async ({ sock, m, args, prefix, command }) => {
-    const userId = m.key.participant || m.key.remoteJid
-    const chatId = m.key.remoteJid
+  run: async (client, m, args, usedPrefix, command) => {
+    const userId = m.sender
+    const chatId = m.chat
 
-    cleanOldLocks()
-    if (rollLocks.has(userId)) return
-    rollLocks.set(userId, Date.now())
+    const allCharacters = Object.values(characters)
+    if (!allCharacters.length) return client.sendMessage(chatId, { text: '❌ No hay personajes disponibles.' }, { quoted: m })
 
-    if (!characters.length) {
-      return sock.sendMessage(chatId, { text: '❌ No hay personajes disponibles.' }, { quoted: m })
-    }
+    const selected = allCharacters[Math.floor(Math.random() * allCharacters.length)]
+    const baseTag = formatTag(selected.tags[0] || '')
+    const mediaList = await buscarImagenDanbooru(baseTag)
+    const media = mediaList[Math.floor(Math.random() * mediaList.length)]
 
-    const selected = characters[Math.floor(Math.random() * characters.length)]
-    const tag = selected.tags?.[0]
-    if (!tag) return sock.sendMessage(chatId, { text: `❌ El personaje ${selected.name} no tiene tag válido.` }, { quoted: m })
+    if (!media) return client.sendMessage(chatId, { text: `❌ No se encontraron imágenes para ${selected.name}` }, { quoted: m })
 
-    const formattedTag = formatTag(tag)
-    const images = await buscarImagenDanbooru(formattedTag)
-    if (!images.length) {
-      return sock.sendMessage(chatId, { text: `❌ No se encontraron imágenes para ${selected.name}.` }, { quoted: m })
-    }
-
-    const media = images[Math.floor(Math.random() * images.length)]
-    const msgText = `❀ Nombre » *${selected.name}*\n⚥ Género » *${selected.gender || 'Desconocido'}*`
-    await sock.sendMessage(chatId, { image: { url: media }, caption: msgText }, { quoted: m })
-
-    rollLocks.delete(userId)
+    const msgText = `❀ Nombre » *${selected.name}*\n⚥ Género » *${selected.gender || 'Desconocido'}*\n✰ Valor » *${selected.value}*`
+    await client.sendMessage(chatId, { image: { url: media }, caption: msgText }, { quoted: m })
   }
 }
