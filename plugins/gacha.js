@@ -1,94 +1,70 @@
-import fetch from 'node-fetch'
-import { promises as fs } from 'fs'
+import fs from 'fs/promises'
 
-const FILE_PATH = './lib/characters.json'
-const rollLocks = new Map()
+const FILE = './lib/characters.json'
+const locks = new Map()
 
 async function loadCharacters() {
   try {
-    await fs.access(FILE_PATH)
+    const raw = await fs.readFile(FILE, 'utf-8')
+    return JSON.parse(raw)
   } catch {
-    await fs.writeFile(FILE_PATH, '{}')
+    return {}
   }
-  return JSON.parse(await fs.readFile(FILE_PATH, 'utf-8'))
 }
 
-function flattenCharacters(db) {
+function getAllCharacters(db) {
   return Object.values(db).flatMap(s =>
     Array.isArray(s.characters) ? s.characters : []
   )
 }
 
-async function buscarImagen(tag) {
-  const query = encodeURIComponent(tag)
-  const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=10`
-
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    })
-    if (!res.ok) return []
-    const json = await res.json()
-    return json.map(p => p.file_url || p.large_file_url).filter(Boolean)
-  } catch {
-    return []
-  }
-}
-
 export default {
   command: ['rw', 'roll', 'rollwaifu'],
-  description: 'Gacha simple',
+  execute: async ({ sock, m, command, prefix }) => {
+    if (!m?.key?.remoteJid) return
 
-  execute: async ({ sock, m }) => {
-    const userId = m.sender
-    const chatId = m.chat
+    const chatId = m.key.remoteJid
+    const sender = m.key.participant || chatId
+    const now = Date.now()
 
-    if (rollLocks.has(userId)) return
-    rollLocks.set(userId, Date.now())
+    if (locks.has(sender)) {
+      if (now - locks.get(sender) < 15000) return
+      locks.delete(sender)
+    }
+
+    locks.set(sender, now)
 
     try {
       const db = await loadCharacters()
-      const all = flattenCharacters(db)
-
+      const all = getAllCharacters(db)
       if (!all.length) {
-        return sock.sendMessage(
-          chatId,
-          { text: '❌ No hay personajes cargados.' },
-          { quoted: m }
-        )
+        await sock.sendMessage(chatId, { text: '❌ No hay personajes disponibles.' })
+        return
       }
 
-      const selected = all[Math.floor(Math.random() * all.length)]
-      const images = await buscarImagen(selected.name)
+      const pick = all[Math.floor(Math.random() * all.length)]
 
-      if (!images.length) {
-        return sock.sendMessage(
-          chatId,
-          { text: '❌ No se encontró imagen.' },
-          { quoted: m }
-        )
+      const text =
+        `🎲 *GACHA*\n\n` +
+        `👤 *Nombre:* ${pick.name || 'Desconocido'}\n` +
+        `📺 *Fuente:* ${pick.source || 'Desconocido'}\n` +
+        `💎 *Valor:* ${pick.value || 100}`
+
+      if (pick.image) {
+        await sock.sendMessage(chatId, {
+          image: { url: pick.image },
+          caption: text
+        })
+      } else {
+        await sock.sendMessage(chatId, { text })
       }
-
-      const img = images[Math.floor(Math.random() * images.length)]
-
-      const text = `🎲 *${selected.name}*
-⭐ Valor: *${selected.value || 100}*`
-
-      await sock.sendMessage(
-        chatId,
-        { image: { url: img }, caption: text },
-        { quoted: m }
-      )
 
     } catch (e) {
-      console.error(e)
-      await sock.sendMessage(
-        chatId,
-        { text: '❌ Error ejecutando el gacha.' },
-        { quoted: m }
-      )
+      await sock.sendMessage(chatId, {
+        text: `❌ Error ejecutando ${prefix + command}`
+      })
     } finally {
-      rollLocks.delete(userId)
+      locks.delete(sender)
     }
   }
 }
