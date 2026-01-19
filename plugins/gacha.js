@@ -58,25 +58,15 @@ async function buscarImagen(tag) {
 export default {
   command: ['rollwaifu', 'rw', 'roll'],
   category: 'gacha',
-  execute: async ({ sock, m, prefix, command }) => {
+  execute: async ({ sock, m }) => {
     const chatId = m.key.remoteJid
     const userId = m.key.participant || chatId
 
     cleanOldLocks()
-
     if (rollLocks.has(userId)) return
     rollLocks.set(userId, Date.now())
 
     try {
-      const chat = global.db.getChat(chatId)
-      if (!chat.gacha) {
-        return sock.sendMessage(
-          chatId,
-          { text: `ꕥ El gacha está desactivado.\nUsa ${prefix}gacha on` },
-          { quoted: m }
-        )
-      }
-
       const db = await loadCharacters()
       const all = flattenCharacters(db)
       if (!all.length) return
@@ -100,7 +90,6 @@ export default {
         { image: { url: img }, caption: text },
         { quoted: m }
       )
-
     } finally {
       rollLocks.delete(userId)
     }
