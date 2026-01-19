@@ -6,8 +6,8 @@ const rollLocks = new Map()
 
 function cleanOldLocks() {
   const now = Date.now()
-  for (const [k, v] of rollLocks) {
-    if (now - v > 30000) rollLocks.delete(k)
+  for (const [userId, lockTime] of rollLocks.entries()) {
+    if (now - lockTime > 30000) rollLocks.delete(userId)
   }
 }
 
@@ -17,17 +17,22 @@ async function loadCharacters() {
   } catch {
     await fs.writeFile(FILE_PATH, '{}')
   }
-  return JSON.parse(await fs.readFile(FILE_PATH, 'utf-8'))
+  const raw = await fs.readFile(FILE_PATH, 'utf-8')
+  return JSON.parse(raw)
 }
 
 function flattenCharacters(db) {
-  return Object.values(db).flatMap(s => Array.isArray(s.characters) ? s.characters : [])
+  return Object.values(db).flatMap(s =>
+    Array.isArray(s.characters) ? s.characters : []
+  )
 }
 
 function getSeriesNameByCharacter(db, id) {
-  return Object.entries(db).find(([, s]) =>
-    Array.isArray(s.characters) && s.characters.some(c => String(c.id) === String(id))
-  )?.[1]?.name || 'Desconocido'
+  return (
+    Object.entries(db).find(([, serie]) =>
+      serie.characters?.some(c => String(c.id) === String(id))
+    )?.[1]?.name || 'Desconocido'
+  )
 }
 
 function formatTag(tag) {
@@ -35,61 +40,62 @@ function formatTag(tag) {
 }
 
 async function buscarImagen(tag) {
-  const q = encodeURIComponent(formatTag(tag))
-  const urls = [
-    `https://danbooru.donmai.us/posts.json?tags=${q}&limit=10`,
-    `https://safebooru.org/index.php?page=dapi&s=post&q=index&json=1&tags=${q}&limit=10`
-  ]
+  const query = encodeURIComponent(formatTag(tag))
+  const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=10`
 
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-      if (!res.ok) continue
-      const json = await res.json()
-      const imgs = Array.isArray(json)
-        ? json.map(p => p.file_url || p.large_file_url).filter(Boolean)
-        : []
-      if (imgs.length) return imgs
-    } catch {}
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    if (!res.ok) return []
+    const json = await res.json()
+    return json
+      .map(p => p.file_url || p.large_file_url)
+      .filter(Boolean)
+  } catch {
+    return []
   }
-  return []
 }
 
 export default {
-  command: ['rollwaifu', 'rw', 'roll'],
-  category: 'gacha',
+  command: ['rw', 'roll', 'rollwaifu'],
+  description: 'Gacha de personajes',
+
   execute: async ({ sock, m }) => {
-    const chatId = m.key.remoteJid
-    const userId = m.key.participant || chatId
+    const userId = m.sender
+    const chatId = m.chat
+    const now = Date.now()
 
     cleanOldLocks()
+
     if (rollLocks.has(userId)) return
-    rollLocks.set(userId, Date.now())
+    rollLocks.set(userId, now)
 
     try {
       const db = await loadCharacters()
       const all = flattenCharacters(db)
-      if (!all.length) return
+      if (!all.length) return m.reply('❌ No hay personajes.')
 
       const selected = all[Math.floor(Math.random() * all.length)]
       const source = getSeriesNameByCharacter(db, selected.id)
-      const tag = selected.tags?.[0]
-      const images = await buscarImagen(tag)
-      if (!images.length) return
+
+      const images = await buscarImagen(selected.tags?.[0] || selected.name)
+      if (!images.length) return m.reply('❌ No se encontró imagen.')
 
       const img = images[Math.floor(Math.random() * images.length)]
 
-      const text =
-`❀ Nombre » *${selected.name}*
-⚥ Género » *${selected.gender || 'Desconocido'}*
-✰ Valor » *${selected.value || 100}*
-❖ Fuente » *${source}*`
+      const text = `❀ *${selected.name}*
+✦ Fuente: *${source}*
+✦ Valor: *${selected.value || 100}*`
 
       await sock.sendMessage(
         chatId,
         { image: { url: img }, caption: text },
         { quoted: m }
       )
+    } catch (e) {
+      console.error(e)
+      m.reply('❌ Error ejecutando gacha.')
     } finally {
       rollLocks.delete(userId)
     }
