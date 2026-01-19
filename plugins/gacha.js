@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import characters from '../lib/characters.js'
+import characters from '../lib/gacha/characters.js'
 
 const rollLocks = new Map()
 
