@@ -14,18 +14,20 @@ function formatTag(tag) {
   return String(tag).trim().toLowerCase().replace(/\s+/g, '_')
 }
 
-async function fetchDanbooruImage(tag) {
+async function fetchDanbooruImages(tag) {
   try {
     const query = encodeURIComponent(tag)
-    const res = await fetch(`https://danbooru.donmai.us/posts.json?tags=${query}&limit=20`, {
+    const res = await fetch(`https://danbooru.donmai.us/posts.json?tags=${query}&limit=50`, {
       headers: { 'User-Agent': 'LapplandBot', Accept: 'application/json' }
     })
-    if (!res.ok) return null
+    if (!res.ok) return []
+
     const data = await res.json()
-    const post = data.find(p => (p.file_url || p.large_file_url) && /\.(jpe?g|png)$/i.test(p.file_url || p.large_file_url))
-    return post ? post.file_url || post.large_file_url : null
+    return data
+      .map(p => p.file_url || p.large_file_url)
+      .filter(url => url && /\.(jpe?g|png)$/i.test(url))
   } catch {
-    return null
+    return []
   }
 }
 
@@ -34,7 +36,7 @@ export default {
   category: 'gacha',
   owner: false,
   admin: false,
-  execute: async ({ sock, m, args }) => {
+  execute: async ({ sock, m }) => {
     const userId = m.sender
     const chatId = m.key.remoteJid
 
@@ -48,9 +50,11 @@ export default {
 
       const selected = allChars[Math.floor(Math.random() * allChars.length)]
       const baseTag = formatTag(selected.tags[0])
-      const imageUrl = await fetchDanbooruImage(baseTag)
+      const images = await fetchDanbooruImages(baseTag)
 
-      if (!imageUrl) return sock.sendMessage(chatId, { text: `❌ No se encontró imagen para ${selected.name}.` }, { quoted: m })
+      if (!images.length) return sock.sendMessage(chatId, { text: `❌ No se encontraron imágenes para ${selected.name}.` }, { quoted: m })
+
+      const imageUrl = images[Math.floor(Math.random() * images.length)]
 
       const msg = `❀ Nombre » *${selected.name}*
 ⚥ Género » *${selected.gender || 'Desconocido'}*
