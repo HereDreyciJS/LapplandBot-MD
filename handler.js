@@ -36,7 +36,12 @@ export const handler = async (sock, msg) => {
 
     const rawSender = isGroup ? msg.key.participant : jid
     if (!rawSender) return
-
+if (isGroup) {
+  const chat = global.db.getChat(msg.key.remoteJid)
+  if (chat.socketOnly && !isOwner && !isBot) {
+    return
+  }
+}
     let senderNumber = senderCache.get(rawSender)
     if (!senderNumber) {
       senderNumber = rawSender.replace(/\D/g, '')
