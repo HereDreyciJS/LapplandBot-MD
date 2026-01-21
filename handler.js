@@ -33,12 +33,7 @@ export const handler = async (sock, msg) => {
 
     const plugin = global.plugins.get(command)
     if (!plugin?.execute) return
-if (isGroup) {
-  const chat = global.db.getChat(msg.key.remoteJid)
-  if (chat.socketOnly && !isOwner && !isBot) {
-    return
-  }
-}
+
     const rawSender = isGroup ? msg.key.participant : jid
     if (!rawSender) return
 
@@ -50,7 +45,12 @@ if (isGroup) {
 
     const isOwner = global.settings.bot.owners.includes(senderNumber)
     const isBot = msg.key.fromMe === true
-
+if (isGroup) {
+  const chat = global.db.getChat(msg.key.remoteJid)
+  if (chat.socketOnly && !isOwner && !isBot) {
+    return
+  }
+}
     if (plugin.owner && !isOwner && !isBot) return
     if (plugin.group && !isGroup) return
 
