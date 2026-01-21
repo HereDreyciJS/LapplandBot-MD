@@ -35,7 +35,11 @@ export const handler = async (sock, msg) => {
     const senderNumber = rawSender.replace(/\D/g, '')
     const isOwner = global.settings.bot.owners.includes(senderNumber)
     const isBot = msg.key.fromMe === true
+const chat = global.db.getChat(msg.key.remoteJid)
 
+if (chat?.socketOnly) {
+  if (!isBot && !isOwner) return
+}
     const user = global.db.getUser(rawSender)
     if (msg.pushName && msg.pushName !== user.name) user.name = msg.pushName
 
