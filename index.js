@@ -42,38 +42,46 @@ const start = async () => {
     setupWelcome(sock)
     groupEvents(sock)
 
-    sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect } = update
-
+    sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
       if (connection === 'open') {
         reconnecting = false
-        console.log(
-          sock.isMainBot ? '✅ Bot ORIGINAL conectado' : '🟡 Sub-bot conectado'
-        )
+        if (process.env.DEBUG) {
+          console.log(
+            sock.isMainBot
+              ? '✅ Bot ORIGINAL conectado'
+              : '🟡 Sub-bot conectado'
+          )
+        }
       }
 
-      if (connection === 'close' && !reconnecting) {
+      if (connection === 'close') {
+        reconnecting = false
         const code = lastDisconnect?.error?.output?.statusCode
-        console.log('❌ Conexión cerrada:', code)
-
-        if (code !== 401) {
-          start()
-        } else {
-          console.log('🚫 Sesión cerrada')
+        if (process.env.DEBUG) {
+          console.log('❌ Conexión cerrada:', code)
         }
+        if (code !== 401) start()
       }
     })
 
-    sock.ev.on('messages.upsert', async (m) => {
+    sock.ev.on('messages.upsert', (m) => {
       if (m.type !== 'notify' || !Array.isArray(m.messages)) return
 
-      const validMsgs = m.messages.filter(msg => msg?.message && msg.key.remoteJid !== 'status@broadcast')
+      for (const msg of m.messages) {
+        if (!msg?.message) continue
+        if (msg.key.remoteJid === 'status@broadcast') continue
 
-      await Promise.all(
-        validMsgs.map(msg =>
-          handler(sock, msg).catch(e => console.error('❌ Error en handler:', e))
-        )
-      )
+        const jid = msg.key.participant || msg.key.remoteJid
+        const now = Date.now()
+        const last = global.cooldowns.get(jid) || 0
+
+        if (now - last < 500) continue
+        global.cooldowns.set(jid, now)
+
+        handler(sock, msg).catch(e => {
+          if (process.env.DEBUG) console.error('❌ Error en handler:', e)
+        })
+      }
     })
 
   } catch (e) {
