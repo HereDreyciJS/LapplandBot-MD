@@ -1,74 +1,81 @@
 import print from './lib/utils/print.js'
 
 const adminCache = new Map()
+const senderCache = new Map()
 
 export const handler = async (sock, msg) => {
   try {
     if (!msg?.message) return
     if (msg.key.remoteJid === 'status@broadcast') return
 
+    const jid = msg.key.remoteJid
+    const isGroup = jid.endsWith('@g.us')
+
     const message = msg.message
     const body =
       message.conversation ??
       message.extendedTextMessage?.text ??
       message.imageMessage?.caption ??
-      message.videoMessage?.caption ??
-      ''
+      message.videoMessage?.caption
 
     if (!body) return
 
     const prefix = global.settings.bot.prefix
-    const isCommand = body.startsWith(prefix)
+    if (body[0] !== prefix) return
 
-    if (isCommand) await print(sock, msg, body, isCommand, msg.key.remoteJid.endsWith('@g.us'))
+    await print(sock, msg, body, true, isGroup)
 
-    if (!isCommand) return
+    const text = body.slice(prefix.length).trim()
+    if (!text) return
 
-    const args = body.slice(prefix.length).trim().split(/\s+/)
-    const command = args.shift()?.toLowerCase()
-    if (!command) return
+    const args = text.split(/\s+/)
+    const command = args.shift().toLowerCase()
 
-    const isGroup = msg.key.remoteJid.endsWith('@g.us')
-    const rawSender = isGroup ? msg.key.participant : msg.key.remoteJid
+    const plugin = global.plugins.get(command)
+    if (!plugin?.execute) return
+
+    const rawSender = isGroup ? msg.key.participant : jid
     if (!rawSender) return
 
-    const senderNumber = rawSender.replace(/\D/g, '')
+    let senderNumber = senderCache.get(rawSender)
+    if (!senderNumber) {
+      senderNumber = rawSender.replace(/\D/g, '')
+      senderCache.set(rawSender, senderNumber)
+    }
+
     const isOwner = global.settings.bot.owners.includes(senderNumber)
     const isBot = msg.key.fromMe === true
-const chat = global.db.getChat(msg.key.remoteJid)
 
-if (chat?.socketOnly) {
-  if (!isBot && !isOwner) return
-}
-    const user = global.db.getUser(rawSender)
-    if (msg.pushName && msg.pushName !== user.name) user.name = msg.pushName
+    if (plugin.owner && !isOwner && !isBot) return
+    if (plugin.group && !isGroup) return
 
     let isAdmin = false
-    if (isGroup) {
-      const chatId = msg.key.remoteJid
+    if (isGroup && plugin.admin) {
       const now = Date.now()
-      let cached = adminCache.get(chatId)
+      let cached = adminCache.get(jid)
 
       if (!cached || now - cached.time > 60_000) {
         try {
-          const meta = await sock.groupMetadata(chatId)
-          const admins = meta.participants
-            .filter(p => p.admin)
-            .map(p => p.id || p.lid)
-          cached = { admins, time: now }
-          adminCache.set(chatId, cached)
+          const meta = await sock.groupMetadata(jid)
+          cached = {
+            admins: meta.participants
+              .filter(p => p.admin)
+              .map(p => p.id),
+            time: now
+          }
+          adminCache.set(jid, cached)
         } catch {
           cached = { admins: [], time: now }
         }
       }
       isAdmin = cached.admins.includes(rawSender)
+      if (!isAdmin) return
     }
 
-    const plugin = global.plugins.get(command)
-    if (!plugin?.execute) return
-
-    if (plugin.owner && !isOwner) return
-    if (plugin.admin && !isAdmin) return
+    const user = global.db.getUser(rawSender)
+    if (msg.pushName && msg.pushName !== user.name) {
+      user.name = msg.pushName
+    }
 
     await plugin.execute({
       sock,
@@ -86,4 +93,4 @@ if (chat?.socketOnly) {
   } catch (e) {
     console.error('❌ Error en handler:', e)
   }
-}
+    }
