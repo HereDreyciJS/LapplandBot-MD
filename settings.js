@@ -17,7 +17,7 @@ const settings = {
       ''
     ],
 
-    image: 'https://files.catbox.moe/297dm2.jpg',
+    image: 'https://files.catbox.moe/t1e8hp.jpeg',
 
     newsletter: {
       jid: '120363392571425662@newsletter',
