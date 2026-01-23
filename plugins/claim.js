@@ -1,37 +1,46 @@
+import characters from '../lib/gacha/characters.js'
+
 export default {
   command: ['claim'],
-  category: 'gacha',
   execute: async ({ sock, m }) => {
-    const userId = m.sender
-    const chatId = m.chat
+    const chatId = m.key.remoteJid
+    const sender = m.key.participant || m.key.remoteJid
 
-    const replyId = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
-                   ? m.message.extendedTextMessage.contextInfo.stanzaId
-                   : m.message?.contextInfo?.quotedMessage?.key?.id
+    global.db.data.claims ??= {}
+    global.db.data.harem ??= {}
 
-    if (!replyId) {
-      return sock.sendMessage(chatId, { text: '❌ Debes responder al mensaje del /rw que quieres reclamar.' }, { quoted: m })
+    const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
+    const text =
+      quoted?.imageMessage?.caption ??
+      quoted?.conversation ??
+      ''
+
+    if (!text) {
+      return sock.sendMessage(chatId, { text: '❌ Responde a un /rw para reclamar' }, { quoted: m })
     }
 
-    const charKey = global.db.data.tempClaims?.[replyId]
-    if (!charKey) {
-      return sock.sendMessage(chatId, { text: '❌ Este mensaje no corresponde a ningún roll válido.' }, { quoted: m })
+    const match = text.match(/Nombre » \*(.+?)\*/)
+    if (!match) {
+      return sock.sendMessage(chatId, { text: '❌ No se pudo identificar el personaje' }, { quoted: m })
     }
 
-    const char = global.db.data.characters?.[charKey] || require('../lib/characters.js')[charKey]
+    const char = Object.values(characters).find(c => c.name === match[1])
     if (!char) {
-      return sock.sendMessage(chatId, { text: '❌ Error: personaje no encontrado.' }, { quoted: m })
+      return sock.sendMessage(chatId, { text: '❌ Personaje no encontrado' }, { quoted: m })
     }
 
-    const user = global.db.getUser(userId)
-    user.harem ||= {}
-    if (user.harem[charKey]) {
-      return sock.sendMessage(chatId, { text: `❌ Ya tienes a ${char.name} en tu colección.` }, { quoted: m })
+    if (global.db.data.claims[char.key]) {
+      return sock.sendMessage(chatId, { text: '❌ Este personaje ya fue reclamado' }, { quoted: m })
     }
 
-    user.harem[charKey] = char
-    delete global.db.data.tempClaims[replyId]
+    global.db.data.claims[char.key] = sender
+    global.db.data.harem[sender] ??= []
+    global.db.data.harem[sender].push(char)
 
-    await sock.sendMessage(chatId, { text: `✅ ¡Has reclamado a ${char.name}!` }, { quoted: m })
+    await sock.sendMessage(
+      chatId,
+      { text: `💖 *${char.name}* ahora es tuya` },
+      { quoted: m }
+    )
   }
 }
