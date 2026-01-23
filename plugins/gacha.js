@@ -1,4 +1,4 @@
-import characters from '../lib/characters.js'
+import characters from '../lib/gacha/characters.js'
 import { getDanbooruImage } from '../lib/danbooru.js'
 
 export default {
