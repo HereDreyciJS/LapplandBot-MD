@@ -1,5 +1,5 @@
 export default {
-  command: ['c', 'claim'],
+  command: ['claim'],
   category: 'gacha',
   execute: async ({ sock, m }) => {
     const userId = m.sender
