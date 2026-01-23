@@ -1,7 +1,7 @@
 import characters from '../lib/gacha/characters.js'
 
 export default {
-  command: ['claim'],
+  command: ['c','claim'],
   execute: async ({ sock, m }) => {
     const chatId = m.key.remoteJid
     const sender = m.key.participant || m.key.remoteJid
@@ -29,13 +29,17 @@ export default {
       return sock.sendMessage(chatId, { text: '❌ Personaje no encontrado' }, { quoted: m })
     }
 
+    if (!char.key) char.key = char.name.toLowerCase().replace(/\s+/g, '_')
+
     if (global.db.data.claims[char.key]) {
       return sock.sendMessage(chatId, { text: '❌ Este personaje ya fue reclamado' }, { quoted: m })
     }
 
     global.db.data.claims[char.key] = sender
     global.db.data.harem[sender] ??= []
-    global.db.data.harem[sender].push(char)
+    if (!global.db.data.harem[sender].some(c => c.key === char.key)) {
+      global.db.data.harem[sender].push(char)
+    }
 
     await sock.sendMessage(
       chatId,
