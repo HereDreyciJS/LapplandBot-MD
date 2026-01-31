@@ -5,7 +5,6 @@ export default {
   command: ['rw'],
   execute: async ({ sock, m }) => {
     const chatId = m.key.remoteJid
-    const sender = m.key.participant || m.key.remoteJid
 
     global.db.data.claims ??= {}
     global.db.data.claims[chatId] ??= {}
@@ -22,6 +21,7 @@ export default {
     if (claimedBy) {
       const user = global.db.data.users?.[claimedBy]
       const name = user?.name || 'Alguien'
+
       if (char.gender?.toLowerCase() === 'femenino') status = `Reclamada por ${name}`
       else if (char.gender?.toLowerCase() === 'masculino') status = `Reclamado por ${name}`
       else status = `Reclamado/a por ${name}`
