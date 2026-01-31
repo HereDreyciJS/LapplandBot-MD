@@ -35,7 +35,7 @@ export default {
     global.db.data.harem[chatId][sender].push(char)
 
     await sock.sendMessage(chatId, {
-      text: `💖 *${char.name}* ahora es tuya`
+      text: `💖 *${char.name}* ahora te pertenece`
     }, { quoted: m })
   }
 }
