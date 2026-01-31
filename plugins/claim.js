@@ -27,6 +27,6 @@ export default {
     chatDb.claims[char.name] = sender
     chatDb.harem[sender].push(char)
 
-    await sock.sendMessage(chatId, { text: `💖 *${char.name}* ahora es tuya en este grupo` }, { quoted: m })
+    await sock.sendMessage(chatId, { text: `💖 *${char.name}* ahora te pertenece` }, { quoted: m })
   }
 }
