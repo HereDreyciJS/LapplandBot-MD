@@ -1,4 +1,4 @@
-import { characters } from '../lib/gacha/characters.js'
+import characters from '../lib/gacha/characters.js'
 import fetch from 'node-fetch'
 
 async function getDanbooruImage(tags) {
@@ -27,6 +27,7 @@ export default {
 
     global.db.data.claims ??= {}
     global.db.data.harem ??= {}
+    global.db.data.claims[chatId] ??= {}
 
     const list = Object.values(characters)
     if (!list.length) {
@@ -34,7 +35,7 @@ export default {
     }
 
     const char = list[Math.floor(Math.random() * list.length)]
-    const claimedBy = global.db.data.claims[char.name]
+    const claimedBy = global.db.data.claims[chatId][char.name]
     const status = claimedBy ? 'Reclamada' : 'Libre'
 
     const imageUrl = await getDanbooruImage(char.tags)
