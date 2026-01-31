@@ -17,11 +17,25 @@ export default {
 
     const char = list[Math.floor(Math.random() * list.length)]
     const claimedBy = global.db.data.claims[chatId][char.key]
-    const status = claimedBy ? 'Reclamada' : 'Libre'
+    let status = 'Libre'
+
+    if (claimedBy) {
+      const user = global.db.data.users?.[claimedBy]
+      const name = user?.name || 'Alguien'
+
+      if (char.gender?.toLowerCase() === 'femenino') {
+        status = `Reclamada por ${name}`
+      } else if (char.gender?.toLowerCase() === 'masculino') {
+        status = `Reclamado por ${name}`
+      } else {
+        status = `Reclamado/a por ${name}`
+      }
+    }
+
     const imageUrl = await getDanbooruImage(char.tags)
 
     const caption = `❀ Nombre » *${char.name}*
-⚥ Género » *${char.gender}*
+⚥ Género » *${char.gender || 'Desconocido'}*
 ❖ Serie » *${char.series || 'Desconocido'}*
 ✰ Valor » *${char.value || 100}*
 ♡ Estado » *${status}*`
