@@ -1,23 +1,5 @@
 import characters from '../lib/gacha/characters.js'
-import fetch from 'node-fetch'
-
-async function getDanbooruImage(tags) {
-  if (!tags || !tags.length) return null
-  const tag = tags[Math.floor(Math.random() * tags.length)]
-  const query = encodeURIComponent(`${tag} rating:s`)
-  const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=20`
-  try {
-    const res = await fetch(url)
-    const json = await res.json()
-    const images = json
-      .filter(post => (post.file_url || post.large_file_url) && /\.(jpg|jpeg|png)$/i.test(post.file_url || post.large_file_url))
-      .map(post => post.file_url || post.large_file_url)
-    if (!images.length) return null
-    return images[Math.floor(Math.random() * images.length)]
-  } catch {
-    return null
-  }
-}
+import { getDanbooruImage } from '../lib/danbooru.js'
 
 export default {
   command: ['rw'],
@@ -26,7 +8,6 @@ export default {
     const sender = m.key.participant || m.key.remoteJid
 
     global.db.data.claims ??= {}
-    global.db.data.harem ??= {}
     global.db.data.claims[chatId] ??= {}
 
     const list = Object.values(characters)
@@ -35,9 +16,8 @@ export default {
     }
 
     const char = list[Math.floor(Math.random() * list.length)]
-    const claimedBy = global.db.data.claims[chatId][char.name]
+    const claimedBy = global.db.data.claims[chatId][char.key]
     const status = claimedBy ? 'Reclamada' : 'Libre'
-
     const imageUrl = await getDanbooruImage(char.tags)
 
     const caption = `❀ Nombre » *${char.name}*
