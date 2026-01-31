@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 async function getDanbooruImage(tags) {
   if (!tags || !tags.length) return null
   const tag = tags[Math.floor(Math.random() * tags.length)]
-  const query = encodeURIComponent(tag)
+  const query = encodeURIComponent(`${tag} rating:s`)
   const url = `https://danbooru.donmai.us/posts.json?tags=${query}&limit=20`
   try {
     const res = await fetch(url)
